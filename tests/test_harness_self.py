@@ -160,6 +160,29 @@ def test_rules_map_matches_wiring() -> None:
     assert all(node["lane"] in lane_ids for node in nodes), "레인 없는 노드"
 
 
+def test_harness_map_catches_ghost_rows() -> None:
+    """지도에만 남은 유령 항목을 잡고, 안내로 섞인 실존 파일명은 안 잡는다(역방향)."""
+    sys.path.insert(0, str(REPO))
+    from kernel.gates import md_graph            # noqa: E402  (경로 삽입 후에만 import 가능)
+
+    text = ("## Claude 훅 실행 순서\n"
+            "| ① | Stop | `check_live.py` | 살아 있는 훅 |\n"
+            "| ② | Stop | `check_gone.py` | 지워진 훅 |\n"
+            "| ③ | SessionStart | 프로파일 검사 | `harness_profile.py` 없음 |\n"
+            "## 에이전트\n"
+            "| 이름 | 용도 |\n"
+            "| `qa` | 산 에이전트 — 설명 칸의 `backend` 는 이름이 아니다 |\n"
+            "| `ghosty` | 지워진 에이전트 |\n")
+    actuals = {"훅": {"check_live.py"}, "에이전트": {"qa"}, "스킬": set()}
+    ghosts = md_graph._map_ghosts(text, actuals, live={"harness_profile.py"})
+
+    assert any("check_gone.py" in g for g in ghosts), "지워진 훅을 못 잡았다"
+    assert any("ghosty" in g for g in ghosts), "지워진 에이전트를 못 잡았다"
+    assert not any("harness_profile.py" in g for g in ghosts), "실존 파일 안내를 유령으로 오인"
+    assert not any("backend" in g for g in ghosts), "표 설명 칸의 이름을 claim 으로 오인"
+    assert len(ghosts) == 2, f"유령 2건이어야 하는데 {ghosts}"
+
+
 def test_runner_leaves_tree_clean() -> None:
     """전 게이트를 돌려도 추적 파일이 하나도 안 바뀐다 — 게이트는 판정만 한다(§23).
 

@@ -17,6 +17,7 @@ PATTERNS = {
     "env_read":    r"\bos\.(Getenv|LookupEnv|Environ)\b",
     "any_type":    r"\binterface\s*\{\s*\}|(?<![\w.])\bany\b",
     "any_escape":  "any-ok",
+    "closure_escape": "closure-ok",
     "comment":     "//",
     "import_stmt": r"^\s*import\b|^\s*\"[\w./-]+\"",
 }

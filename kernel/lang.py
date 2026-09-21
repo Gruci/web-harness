@@ -37,6 +37,7 @@ DEFAULTS: dict[str, Any] = {
         "env_read": r"\bos\.(getenv|environ)\b",
         "any_type": r"[:\[,]\s*Any\b|->\s*Any\b",
         "any_escape": "any-ok",
+        "closure_escape": "closure-ok",
         "comment": "#",
         "import_stmt": r"\bimport\b",
     },

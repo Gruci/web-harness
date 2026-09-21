@@ -85,31 +85,43 @@ def check_header_path_comment(files: list[Path]) -> list[str]:
     return bad
 
 
-def _nested_defs(tree: ast.AST) -> list[str]:
-    found: list[str] = []
+def _nested_defs(tree: ast.AST) -> list[tuple[int, str]]:
+    found: list[tuple[int, str]] = []
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             for child in node.body:
                 for sub in ast.walk(child):
                     if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        found.append(f"{node.name} > {sub.name}")
+                        found.append((sub.lineno, f"{node.name} > {sub.name}"))
     return found
 
 
 def check_closures(files: list[Path]) -> list[str]:
-    """중첩 def(클로저) 금지. 일회성 스크립트만 제외."""
+    """중첩 def(클로저) 금지. 일회성 스크립트와 줄 단위 탈출 주석만 제외.
+
+    탈출구를 둔 이유: 전면 금지는 데코레이터처럼 클로저가 유일한 형태인 경우에 고칠 수단을
+    안 준다. 실제로 테스트의 가짜 git 클로저가 막혀 모듈 레벨로 밀려난 적이 있다. 사유를
+    적게 하는 것이 본체다 — `# any-ok: 사유` 와 같은 계약이고, 통과가 아니라 기록을 받는다.
+    """
+    escape = profile.pattern("closure_escape") or "closure-ok"
+    comment = profile.pattern("comment") or "#"
     bad: list[str] = []
     for f in files:
         rel = _rel(f)
         if _is_scratch(rel):
             continue
+        text = f.read_text(encoding=READ_ENC)
         try:
-            tree = ast.parse(f.read_text(encoding=READ_ENC))
+            tree = ast.parse(text)
         except SyntaxError as exc:
             bad.append(f"{rel}: 파싱 실패 {exc}")
             continue
-        for pair in _nested_defs(tree):
-            bad.append(f"{rel}: 중첩 def {pair}")
+        lines = text.splitlines()
+        for lineno, pair in _nested_defs(tree):
+            if escape in lines[lineno - 1]:
+                continue
+            bad.append(f"{rel}:{lineno}: 중첩 def {pair} "
+                       f"(불가피하면 `{comment} {escape}: 사유`)")
     return bad
 
 

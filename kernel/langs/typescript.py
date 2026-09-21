@@ -15,6 +15,7 @@ PATTERNS = {
     "env_read":    r"\bprocess\.env\b|\bDeno\.env\b",
     "any_type":    r":\s*any\b|\bas\s+any\b|<\s*any\b",
     "any_escape":  "any-ok",
+    "closure_escape": "closure-ok",
     "comment":     "//",
     "import_stmt": r"^\s*import\b|\brequire\s*\(",
 }

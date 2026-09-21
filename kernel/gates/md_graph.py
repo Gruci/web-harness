@@ -267,11 +267,42 @@ def _harness_actuals() -> dict[str, set[str]]:
     return actual
 
 
-def check_harness_map() -> list[str]:
-    """실물(훅·에이전트·스킬)이 지도에 빠짐없이 등재됐는가.
+_HOOK_FILE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\.py")
+_ITEM_NAME = re.compile(r"[a-z][a-z0-9-]*")
 
-    단방향이다 — 지도에만 남은 유령 항목은 잡히지 않는다. 이름의 존재만 보고 서술 내용은
-    검사하지 않는다. 그쪽은 사람이 하는 주기 감사의 몫이다.
+
+def _map_claims(text: str) -> dict[str, set[str]]:
+    """지도가 "있다"고 적은 이름. **절 경계로 범위를 좁힌다** — 문서 전체에서 이름만 긁으면
+    안내 문구에 섞인 파일명이 전부 유령으로 잡힌다(정방향이 같은 함정을 겪었다).
+
+    훅은 표의 칸 위치가 일정하지 않아 절 안의 백틱 `*.py` 를 전부 본다. 에이전트·스킬은
+    표 첫 칸이 이름이라 그 한 토큰만 본다 — 뒤 칸의 설명에 섞인 다른 이름을 배제한다.
+    """
+    claims: dict[str, set[str]] = {"훅": set(), "에이전트": set(), "스킬": set()}
+    section = ""
+    for line in text.splitlines():
+        if line.startswith("## "):
+            section = next((kind for kind in claims if kind in line), "")
+            continue
+        if not section or not line.startswith("|"):
+            continue
+        tokens = _BACKTICK.findall(line)
+        if section == "훅":
+            claims[section].update(t for t in tokens if _HOOK_FILE.fullmatch(t))
+        elif tokens and _ITEM_NAME.fullmatch(tokens[0]):
+            claims[section].add(tokens[0])
+    return claims
+
+
+def check_harness_map() -> list[str]:
+    """실물(훅·에이전트·스킬)과 지도가 서로를 덮는가 — 양방향.
+
+    정방향은 실물이 지도에 빠진 것, 역방향은 지워졌는데 지도에만 남은 유령 항목이다.
+    역방향은 **레포 어디에도 그 이름의 파일이 없을 때만** 유령으로 본다. 절 안에는 훅이
+    아닌 파일명도 안내로 섞이는데(`harness_profile.py`), 실존 여부로 거르면 그 부류가
+    통째로 빠진다. 대신 파일은 남았는데 배선만 풀린 훅은 못 잡는다 — 그건 사람 몫이다.
+
+    이름의 존재만 보고 서술 내용은 검사하지 않는다. 그쪽은 주기 감사(`/md-audit`)다.
     """
     actuals = _harness_actuals()
     if not any(actuals.values()):
@@ -280,8 +311,17 @@ def check_harness_map() -> list[str]:
     if not doc.exists():
         return [f"{profile.HARNESS_MAP} 없음 — 하네스 지도가 정본이다"]
     text = doc.read_text(encoding=READ_ENC)
-    return [f"{profile.HARNESS_MAP}: {kind} '{name}' 이 지도에 없음 — 같은 턴에 등재하라"
-            for kind, names in actuals.items() for name in sorted(names) if name not in text]
+    bad = [f"{profile.HARNESS_MAP}: {kind} '{name}' 이 지도에 없음 — 같은 턴에 등재하라"
+           for kind, names in actuals.items() for name in sorted(names) if name not in text]
+    live = {Path(rel).name for rel in _tracked_set()}
+    return bad + [f"{profile.HARNESS_MAP}: {msg}" for msg in _map_ghosts(text, actuals, live)]
+
+
+def _map_ghosts(text: str, actuals: dict[str, set[str]], live: set[str]) -> list[str]:
+    """지도에만 남은 이름. `live` 는 레포에 실존하는 파일 basename 집합이다."""
+    return [f"{kind} '{name}' 은 지도에만 있음 — 실물이 없다. 행을 지워라"
+            for kind, names in _map_claims(text).items()
+            for name in sorted(names - actuals[kind]) if name not in live]
 
 
 # 백틱 안 **빈 괄호** `이름()` 또는 `모듈.이름()` 만 잡는다. 인자 있는 `foo(x)` 까지 넓히면

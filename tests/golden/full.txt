@@ -9,7 +9,7 @@ exit=1
    - utils/moved.py: 헤더 주석 'utils/old_name.py' ≠ 실경로 — 주석을 실경로로 갱신
 
 [FAIL] 중첩 def(클로저) (closures) — 1건
-   - utils/closure.py: 중첩 def outer > inner
+   - utils/closure.py:5: 중첩 def outer > inner (불가피하면 `# closure-ok: 사유`)
 
 [FAIL] 함수 길이 상한 (func_limit) — 1건
    - utils/long_func.py:4: long_calc 82줄 (>80)
@@ -41,13 +41,15 @@ exit=1
 [FAIL] Any 타입힌트 (py_any) — 1건
    - utils/anyhint.py:5: 임의 타입 → 구체 타입 (불가피하면 `# any-ok: 사유`)
 
-[FAIL] 공개 함수 타입힌트 (type_hints) — 9건
+[FAIL] 공개 함수 타입힌트 (type_hints) — 11건
    - db/conn_loop.py:4: agg() 타입힌트 누락 — 반환
    - db/reads/bad_write.py:4: wipe() 타입힌트 누락 — conn, 반환
    - db/reads/core_import.py:5: rows() 타입힌트 누락 — 반환
    - kofia/collect.py:4: collect() 타입힌트 누락 — 반환
    - utils/closure.py:4: outer() 타입힌트 누락 — 반환
+   - utils/closure.py:10: wrapped() 타입힌트 누락 — 반환
    - utils/closure.py:5: inner() 타입힌트 누락 — 반환
+   - utils/closure.py:11: keeper() 타입힌트 누락 — 반환
    - utils/ssl_utils.py:4: bypass_ssl_verification() 타입힌트 누락 — 반환
    - web/handlers.py:4: ping() 타입힌트 누락 — 반환
    - web/routes/errors.py:4: fail() 타입힌트 누락 — 반환
@@ -151,4 +153,4 @@ exit=1
    - settings.py 가 읽는 'ALPHA_KEY' 가 DEVGUIDE.md 목록에 없음
    - DEVGUIDE.md 의 'BETA_KEY' 를 settings.py 가 읽지 않음(타 모듈 로드 가능 — 확인)
 
-총 59건 위반.
+총 61건 위반.

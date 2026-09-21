@@ -4,7 +4,7 @@
 
 **A guardrail that keeps AI from wrecking your code**
 
-Harness v3.7.0
+Harness v3.8.0
 
 [한국어](README.md) · [English](README.en.md)
 
@@ -474,7 +474,7 @@ python -X utf8 -m kernel.diagram deliver  architecture docs/architecture/<name>.
 
 | Version | Changes |
 |:--|:--|
-| **v3.8.0** | Root holds only tool-convention files. Hub documents moved into their home directories — DEVGUIDE and HARNESS to `dev/`, DESIGN_GUIDE to `design/`, BACKLOG to `docs/` — with profiles, presets, and references repointed. |
+| **v3.8.0** | Root holds only tool-convention files, and the harness map is checked both ways. Hub documents moved into their home directories — DEVGUIDE and HARNESS to `dev/`, DESIGN_GUIDE to `design/`, BACKLOG to `docs/`; check 28 now also catches map rows whose real file is gone; nested `def` gained a reasoned escape comment. |
 | **v3.7.0** | Task board moved out of git into root `workboard/` — one file per task, edit-time overlap warnings (Claude hook + Codex entrypoint sharing one kernel judgment), worktrees relocated to root `worktrees/` for agent neutrality, EDITING.md renamed to BACKLOG.md. |
 | **v3.6.0** | Less check cost and noise. Full check 21 s → 3 s, six frontend checks delegated to ESLint, AI copy review downgraded to a warning, CLAUDE.md deduplicated. |
 | **v3.5.0** | Verified architecture diagrams. Built-in diagram engine and check 48, self-update path, profile-shape check 47, nine self-tests. |
