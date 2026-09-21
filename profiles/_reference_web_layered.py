@@ -1,10 +1,12 @@
-"""profiles/fund_monitor.py — fund_monitor 프로젝트 프로파일.
+"""profiles/_reference_web_layered.py — 실운영 web_layered 레포의 프로파일 실물(참조용).
 
-커널에서 걷어낸 fund_monitor 고유 이름을 전부 여기로 모았다. 스키마 정의와 각 항목의 뜻은
-`profiles/_template.py` 가 정본이다 — 여기엔 값만 둔다.
+**프리셋이 아니다.** 원류 프로젝트(fund_monitor)의 레이어 이름·어휘·예외가 그대로 들어 있어
+새 프로젝트가 고르면 남의 도메인을 물려받는다. `PRESET_SUMMARY` 를 선언하지 않아 설치 목록에
+안 뜨고, 이름 앞의 `_` 가 그 사실을 눈으로도 알린다 — 고를 것은 `_` 없는 세 개다.
 
-이 파일이 커널 리팩터의 검증 기준이기도 하다. 커널이 이 프로파일을 받아 fund_monitor 레포에서
-리팩터 전과 같은 판정을 내려야 이관이 끝난 것으로 본다.
+남겨두는 이유는 둘이다. 전 게이트가 실제로 켜진 프로파일이 어떻게 생겼는지 보여주는 **본보기**이고,
+커널 리팩터의 **회귀 기준선**이다 — 커널이 이걸 받아 원류 레포에서 리팩터 전과 같은 판정을
+내려야 이관이 끝난 것으로 본다. 스키마 정의와 각 항목의 뜻은 `profiles/_template.py` 가 정본이다.
 """
 
 from __future__ import annotations
@@ -120,7 +122,7 @@ BEHAVIOR_TESTED_ROOTS: tuple[str, ...] = (
 )
 
 
-# 사고 1건마다 붙은 fund_monitor 전용 게이트. 커널에서 걷어냈으니 이 레포의
+# 사고 1건마다 붙은 원류 레포 전용 게이트. 커널에서 걷어냈으니 그 레포의
 # `harness_gates/` 아래에 옮겨 심어야 한다. 원본은 harness 레포의 `src/static_check_*.py` 다.
 LOCAL_GATES: tuple[str, ...] = (
     "prompt_version",     # 프롬프트 본문↔헤더 버전 동시 갱신
