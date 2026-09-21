@@ -10,7 +10,7 @@ This is the Codex-only entry point for this project. Claude Code uses `CLAUDE.md
 - Shared skill procedures live in [dev/workflows/README.md](dev/workflows/README.md); adapters read the relevant procedure directly.
 - `impeccable-cdx` alone may read the unchanged vendor `.claude/skills/impeccable/SKILL.md` and the task-specific references and scripts it requires. Do not preload or modify vendor assets.
 - Worktree operations may use the shared location specified in `workboard/README.md`; that is not permission to load Claude instructions.
-- Shared project truth lives in `README.md`, `DEVGUIDE.md`, `DESIGN_GUIDE.md`, `dev/`, `design/`, and `kernel/runner.py`.
+- Shared project truth lives in `README.md`, `dev/DEVGUIDE.md`, `design/DESIGN_GUIDE.md`, `dev/`, `design/`, and `kernel/runner.py`.
 - Codex-only behavior belongs in `AGENTS.md`, `.agents/`, or `.codex/`. Edit Claude-only harness files only for explicitly requested interoperability.
 - Codex skill names end in `-cdx`.
 
@@ -31,12 +31,12 @@ Before starting implementation, list `workboard/` for open tasks (one untracked 
 |---|---|
 | Any Markdown you write or edit | `dev/MD_STANDARD.md` — three rules, component test |
 | Any new file or function | `dev/CONVENTIONS.md` — decided conventions and helper registry |
-| Python | `DEVGUIDE.md`, then the relevant `dev/` sub-document |
-| `frontend/` React and TypeScript | `DESIGN_GUIDE.md`, then the relevant `design/` sub-document |
+| Python | `dev/DEVGUIDE.md`, then the relevant `dev/` sub-document |
+| `frontend/` React and TypeScript | `design/DESIGN_GUIDE.md`, then the relevant `design/` sub-document |
 | Database schema, tables, columns | `dev/DATA_MODEL.md` and `dev/NAMING.md` |
 | Screen work of any kind | `design/RESPONSIVE.md` — desktop and mobile are defined together at plan time |
 | Tests | use `$test-cdx`, which routes to `dev/TESTING.md` |
-| Harness, hooks, gates | `HARNESS.md` |
+| Harness, hooks, gates | `dev/HARNESS.md` |
 | Disputing a rule | `dev/LESSONS.md` — the incident behind it |
 
 Search first and read targeted ranges. Do not preload unrelated Markdown.
@@ -78,6 +78,6 @@ Search first and read targeted ranges. Do not preload unrelated Markdown.
 ## Codex harness
 
 Use the smallest applicable skill from `.agents/skills/`.
-Read [HARNESS.md](HARNESS.md) for shared hook installation, runtime trust, and verification boundaries.
+Read [dev/HARNESS.md](dev/HARNESS.md) for shared hook installation, runtime trust, and verification boundaries.
 The shared simplicity ladder is [dev/workflows/simplicity.md](dev/workflows/simplicity.md).
 Delegated results must be concise and include file:line evidence.

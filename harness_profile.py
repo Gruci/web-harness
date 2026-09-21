@@ -5,7 +5,7 @@
 자신의 발자국이라 `kernel/context.app_code()` 가 코드 게이트 대상에서 뺀다.
 그래서 실질적으로 도는 것은 MD 게이트와 하네스 자기서술 게이트다.
 
-STAGE 가 greenfield 인 이유: 이 레포가 싣고 다니는 문서(`DEVGUIDE.md`·`dev/`)는 **앞으로
+STAGE 가 greenfield 인 이유: 이 레포가 싣고 다니는 문서(`dev/DEVGUIDE.md`·`dev/`)는 **앞으로
 만들 프로젝트**의 구조를 설명한다. 그 경로들은 여기 실존하지 않는 게 정상이고, 그래서
 경로 참조 게이트를 강제로 두면 배포용 문서를 한 줄도 못 쓴다. 리포트로는 계속 나온다.
 
@@ -45,10 +45,10 @@ SCOPE: dict[str, tuple[str, ...]] = {
     "exclude_scratch": (),
 }
 
-HUBS: tuple[str, ...] = ("CLAUDE.md", "README.md", "HARNESS.md", "DEVGUIDE.md",
-                         "DESIGN_GUIDE.md", "AGENTS.md")
+HUBS: tuple[str, ...] = ("CLAUDE.md", "README.md", "dev/HARNESS.md", "dev/DEVGUIDE.md",
+                         "design/DESIGN_GUIDE.md", "AGENTS.md")
 HUB_DOMAIN_MD_IMPLICIT = True
-HARNESS_MAP = "HARNESS.md"
+HARNESS_MAP = "dev/HARNESS.md"
 
 MD: dict[str, tuple[str, ...]] = {
     "doc_exclude":   (".claude/", ".agents/", ".codex/", "tests/fixtures/",
@@ -58,7 +58,7 @@ MD: dict[str, tuple[str, ...]] = {
     # 파일이라 역할 계약 규약의 대상이 아니다. 레포 대문(README)도 마찬가지다.
     # `workboard/` 과업 파일은 기계가 파싱하는 보드 상태라 문서 서식의 대상이 아니다.
     "style_exclude": (".claude/", ".agents/", ".codex/", "tests/fixtures/",
-                      "workboard/", "BACKLOG.md", "README.md", "README.en.md"),
+                      "workboard/", "docs/BACKLOG.md", "README.md", "README.en.md"),
     "date_exempt":   ("dev/LESSONS.md",),
 }
 

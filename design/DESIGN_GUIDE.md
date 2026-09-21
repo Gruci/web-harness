@@ -1,6 +1,6 @@
-# DESIGN_GUIDE.md — UI 디자인 허브
+# design/DESIGN_GUIDE.md — UI 디자인 허브
 
-> 담는 것: UI 작업의 라우팅 허브와 디자인 4원칙. 담지 않는 것: 색상·컴포넌트·레이아웃·차트·UX의 상세(→ `design/` 서브MD)·백엔드 규칙(→ `DEVGUIDE.md`). 읽는 시점: `frontend/src/`를 만지기 전, 그리고 어느 `design/` MD를 읽을지 고를 때.
+> 담는 것: UI 작업의 라우팅 허브와 디자인 4원칙. 담지 않는 것: 색상·컴포넌트·레이아웃·차트·UX의 상세(→ `design/` 서브MD)·백엔드 규칙(→ `dev/DEVGUIDE.md`). 읽는 시점: `frontend/src/`를 만지기 전, 그리고 어느 `design/` MD를 읽을지 고를 때.
 > 정본 값: `frontend/src/constants/`(TS 상수) + CSS `:root` 변수 (첫 스캐폴딩 시 생성).
 > 이 MD는 라우팅 + 4대 원칙 + 체크리스트만. 실제 스펙은 `design/` 서브MD에 있음 — **패턴이 신설되는 그 턴 안에 서브MD에 기록**된다.
 

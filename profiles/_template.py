@@ -105,7 +105,7 @@ SCOPE: dict[str, tuple[str, ...]] = {
 # ── MD ─────────────────────────────────────────────────────────────────────────
 HUBS: tuple[str, ...] = ()          # 고아 판정의 시드. 여기서 도달 못 하는 MD 는 읽힐 일이 없다
 HUB_DOMAIN_MD_IMPLICIT = True       # `macro/MACRO.md` 같은 동명 정본을 총칭 라우팅으로 인정
-HARNESS_MAP = "HARNESS.md"          # 훅·에이전트·스킬 지도 파일
+HARNESS_MAP = "dev/HARNESS.md"      # 훅·에이전트·스킬 지도 파일
 
 MD: dict[str, tuple[str, ...]] = {
     "doc_exclude":   (),   # 정본 취급하지 않는 MD. 작업 산출물·하네스 내부 문서
@@ -155,8 +155,8 @@ ROOT_FILES: tuple[str, ...] = ()      # 예: ("README.md", "CLAUDE.md", "setting
 # kind "int_consts" : code 의 최상위 int 상수 vs doc 표의 숫자 (marker 로 상수명 필터)
 # kind "env_keys"   : code 의 os.getenv 키 vs doc 의 키 목록, 양방향 diff
 DOC_SYNC: list[dict[str, object]] = [
-    # {"doc": "DEVGUIDE.md", "code": "scheduler.py", "kind": "int_consts", "marker": "_HOUR"},
-    # {"doc": "DEVGUIDE.md", "code": "settings.py", "kind": "env_keys",
+    # {"doc": "dev/DEVGUIDE.md", "code": "scheduler.py", "kind": "int_consts", "marker": "_HOUR"},
+    # {"doc": "dev/DEVGUIDE.md", "code": "settings.py", "kind": "env_keys",
     #  "section": "## .env 키 목록", "allow": ()},
 ]
 

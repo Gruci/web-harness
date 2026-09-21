@@ -51,15 +51,16 @@ SCOPE: dict[str, tuple[str, ...]] = {
 
 
 HUBS: tuple[str, ...] = (
-    "CLAUDE.md", "AGENTS.md", "DEVGUIDE.md", "DESIGN_GUIDE.md", "README.md", "HARNESS.md",
+    "CLAUDE.md", "AGENTS.md", "dev/DEVGUIDE.md", "design/DESIGN_GUIDE.md", "README.md",
+    "dev/HARNESS.md",
 )
 HUB_DOMAIN_MD_IMPLICIT = True
-HARNESS_MAP = "HARNESS.md"
+HARNESS_MAP = "dev/HARNESS.md"
 
 MD: dict[str, tuple[str, ...]] = {
-    "doc_exclude":   ("docs/", ".claude/", ".codex/", ".agents/", "BACKLOG.md"),
+    "doc_exclude":   ("docs/", ".claude/", ".codex/", ".agents/"),
     "ref_exclude":   ("docs/", "idea/", "memory/"),
-    "style_exclude": ("docs/", ".agents/", ".codex/", ".claude/skills/impeccable/", "BACKLOG.md"),
+    "style_exclude": ("docs/", ".agents/", ".codex/", ".claude/skills/impeccable/"),
     "date_exempt":   ("dev/LESSONS.md",),
 }
 
@@ -104,9 +105,9 @@ ALLOWLIST: dict[str, tuple[str, ...]] = {
 
 
 DOC_SYNC: list[dict[str, object]] = [
-    {"doc": "DEVGUIDE.md", "code": "batch_runner.py",
+    {"doc": "dev/DEVGUIDE.md", "code": "batch_runner.py",
      "kind": "int_consts", "marker": "_HOUR"},
-    {"doc": "DEVGUIDE.md", "code": "settings.py",
+    {"doc": "dev/DEVGUIDE.md", "code": "settings.py",
      "kind": "env_keys", "section": "## .env 키 목록",
      # pykrx 가 KRX 로그인 시 .env 를 직접 읽는다 — settings.py 를 안 거치지만 문서엔 있어야 한다
      "allow": ("KRX_ID", "KRX_PW")},

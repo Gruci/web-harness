@@ -36,7 +36,7 @@ Talk to an AI long enough and the code tangles. Today's session doesn't know yes
 
 Both agents share development rules, working procedures, and the check engine.
 Their entry instructions and tool configuration stay separate.
-Use the [shared workflow hub](dev/workflows/README.md) for procedures and [harness guide](HARNESS.md) for runtime contracts.
+Use the [shared workflow hub](dev/workflows/README.md) for procedures and [harness guide](dev/HARNESS.md) for runtime contracts.
 
 Initialize Codex with `python -X utf8 setup_global_permissions.py --agent codex`.
 Use `--agent both` to initialize both agents together.
@@ -291,7 +291,7 @@ Blocking on an inference leaves no way out when the inference is wrong. That hap
 
 ### What gets caught
 
-Forty-six checks run on every file save. The full list and rationale live in `HARNESS.md`. Representative examples:
+Forty-six checks run on every file save. The full list and rationale live in `dev/HARNESS.md`. Representative examples:
 
 | Caught | Why, and the fix |
 |:--|:--|
@@ -324,10 +324,9 @@ project-root/
 ├── harness_install.py      # Installer and legacy-violation registration
 ├── CLAUDE.md               # AI behavior rules, auto-loaded each session
 ├── PROJECT.md              # Service domain, vocabulary, layer structure
-├── HARNESS.md              # Full map of checks, hooks, agents, skills
-├── DEVGUIDE.md             # Server-side rules (with dev/)
-├── DESIGN_GUIDE.md         # Screen design rules (with design/)
-├── BACKLOG.md              # Remaining backlog — active tasks live on the board below
+├── dev/                    # Server-side rules — DEVGUIDE.md hub, HARNESS.md harness map
+├── design/                 # Screen design rules — DESIGN_GUIDE.md hub
+├── docs/                   # Deliverables — BACKLOG.md backlog, task documents; active tasks live on the board below
 ├── workboard/              # Task board (agent-neutral; only README tracked, task files untracked)
 ├── worktrees/              # Per-task isolated checkouts (untracked; git worktree list is the registry)
 ├── kernel/                 # Check engine. Knows nothing about the project
@@ -475,6 +474,7 @@ python -X utf8 -m kernel.diagram deliver  architecture docs/architecture/<name>.
 
 | Version | Changes |
 |:--|:--|
+| **v3.8.0** | Root holds only tool-convention files. Hub documents moved into their home directories — DEVGUIDE and HARNESS to `dev/`, DESIGN_GUIDE to `design/`, BACKLOG to `docs/` — with profiles, presets, and references repointed. |
 | **v3.7.0** | Task board moved out of git into root `workboard/` — one file per task, edit-time overlap warnings (Claude hook + Codex entrypoint sharing one kernel judgment), worktrees relocated to root `worktrees/` for agent neutrality, EDITING.md renamed to BACKLOG.md. |
 | **v3.6.0** | Less check cost and noise. Full check 21 s → 3 s, six frontend checks delegated to ESLint, AI copy review downgraded to a warning, CLAUDE.md deduplicated. |
 | **v3.5.0** | Verified architecture diagrams. Built-in diagram engine and check 48, self-update path, profile-shape check 47, nine self-tests. |

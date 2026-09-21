@@ -39,7 +39,7 @@
 차단이면 잘못된 지시를 따르거나 세션이 잠기거나 둘 중 하나인데 둘 다 나쁘다.
 
 검출을 끄면 잔해가 안 보이므로 **끄는 대신 단계를 낮춘다** — 매 턴 말은 하되 문은 안 잠근다.
-정본은 `HARNESS.md` 「단계」다.
+정본은 `dev/HARNESS.md` 「단계」다.
 """
 import re
 import subprocess
@@ -127,7 +127,7 @@ def main() -> None:
         print(f"  {name}  [{tree['branch']}] — 머지 완료·원격 삭제됨", file=sys.stderr)
     print("`git worktree remove <경로>` → `git branch -d <브랜치>` → 보드 행 제거 순서로 정리한 후 종료하세요.", file=sys.stderr)
     print("(순서가 계약이다 — worktree 가 점유 중인 브랜치는 로컬 삭제가 거부된다)", file=sys.stderr)
-    # 경고(1)지 차단(2)이 아니다 — 판정 근거가 git 상태 추론이라서다. HARNESS.md 「단계」 참조.
+    # 경고(1)지 차단(2)이 아니다 — 판정 근거가 git 상태 추론이라서다. dev/HARNESS.md 「단계」 참조.
     sys.exit(1)
 
 

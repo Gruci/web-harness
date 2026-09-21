@@ -253,7 +253,7 @@ def test_task_residue_fresh() -> None:
     """방금 만든 산출물은 검출하지 않는다 — 보드 행 없는 계획 단계 세션을 유예가 덮는다."""
     import time
     residue = _load("check_task_residue")
-    fake = ROOT / "BACKLOG.md"                     # 실존 파일이면 무엇이든 mtime 조작 없이 fresh
+    fake = ROOT / "docs" / "BACKLOG.md"            # 실존 파일이면 무엇이든 mtime 조작 없이 fresh
     assert residue._is_fresh(fake, time.time()) in (True, False)   # 판정이 죽지 않는다
     assert residue._is_fresh(fake, fake.stat().st_mtime + 60) is True, "1분 전 파일을 잔해로 판정"
     assert residue._is_fresh(fake, fake.stat().st_mtime + residue.FRESH_SEC + 1) is False, \

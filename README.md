@@ -36,12 +36,12 @@ AI랑 대화하다 보면 코드가 꼬입니다. 어제 합의한 규칙을 오
 
 개발 규칙과 작업 절차, 검사 엔진을 공유합니다.
 에이전트별 진입점과 도구 설정은 분리합니다.
-공통 절차는 [작업 절차 허브](dev/workflows/README.md), 실행 계약은 [하네스 지도](HARNESS.md)에 있습니다.
+공통 절차는 [작업 절차 허브](dev/workflows/README.md), 실행 계약은 [하네스 지도](dev/HARNESS.md)에 있습니다.
 
 Codex의 첫 초기화는 `python -X utf8 setup_global_permissions.py --agent codex`로 합니다.
 양쪽을 한 번에 초기화하려면 `--agent both`를 사용합니다.
 도구 승인 없이 실행하도록 전역 설정을 설치하며 질문은 중요한 모호함의 확정과 구현 전 계획 승인으로 제한합니다.
-기존 설정 보존과 적용 범위는 [전역 자율 실행 계약](HARNESS.md#전역-자율-실행-초기화)을 따릅니다.
+기존 설정 보존과 적용 범위는 [전역 자율 실행 계약](dev/HARNESS.md#전역-자율-실행-초기화)을 따릅니다.
 Codex 전역 설정 설치는 Python 3.11 이상을 권장합니다.
 Python 3.10에서는 설치된 `toml` 패키지가 필요합니다.
 새 세션에서 적용하며, 호스트 앱이 강제하는 정책은 전역 설정보다 우선합니다.
@@ -289,7 +289,7 @@ LAYERS: dict[str, str | None] = {
 
 ### 어떤 것들을 잡아주나요
 
-파일을 저장할 때마다 48종의 검사가 돕니다. 전체 목록과 판정 근거는 `HARNESS.md`에 있습니다. 대표 예시입니다.
+파일을 저장할 때마다 48종의 검사가 돕니다. 전체 목록과 판정 근거는 `dev/HARNESS.md`에 있습니다. 대표 예시입니다.
 
 | 잡히는 것 | 왜, 어떻게 고치나 |
 |:--|:--|
@@ -325,10 +325,9 @@ project-root/
 ├── harness_install.py      # 설치와 기존 위반 등록 스크립트
 ├── CLAUDE.md               # AI 행동 규칙. 세션마다 자동 로드
 ├── PROJECT.md              # 서비스 도메인 정의, 용어, 레이어 구조
-├── HARNESS.md              # 검사·훅·에이전트·스킬 전체 지도
-├── DEVGUIDE.md             # 서버 개발 규칙 (dev/ 연계)
-├── DESIGN_GUIDE.md         # 화면 디자인 규칙 (design/ 연계)
-├── BACKLOG.md              # 잔여 백로그 — 진행 중 과업은 workboard/ 가 담습니다
+├── dev/                    # 서버 개발 규칙 — DEVGUIDE.md 허브, HARNESS.md 하네스 지도
+├── design/                 # 화면 디자인 규칙 — DESIGN_GUIDE.md 허브
+├── docs/                   # 산출물 — BACKLOG.md 잔여 백로그, 작업 문서. 진행 중 과업은 workboard/
 ├── workboard/              # 과업 보드 (에이전트 중립, README만 추적 — 과업 파일은 git 밖)
 ├── worktrees/              # 작업별 격리 체크아웃 (git 밖, 정본 목록은 git worktree list)
 ├── kernel/                 # 검사 판정 엔진. 프로젝트를 모릅니다
@@ -464,6 +463,7 @@ python -X utf8 -m kernel.diagram deliver  architecture docs/architecture/<이름
 
 | 버전 | 변경 내용 |
 |:--|:--|
+| **v3.8.0** | 루트 문서 정리 — 허브 MD를 소속 디렉토리로 이동. |
 | **v3.7.0** | 에이전트 중립화. |
 | **v3.6.0** | 검사 비용과 소음 절감. |
 | **v3.5.0** | 아키텍처 구조도 시스템 도입. |

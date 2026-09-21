@@ -33,7 +33,7 @@
 
 조건을 좁혀도 판정 근거는 여전히 **git 상태 추론**이다(머지 커밋 제목 매칭·ref 유무). squash
 머지나 포크 워크플로처럼 흔적이 다른 경우가 있어 오탐 여지가 남는다. 검출은 계속하되 문은
-안 잠근다 — 정본은 `HARNESS.md` 「단계」다.
+안 잠근다 — 정본은 `dev/HARNESS.md` 「단계」다.
 
 원격 조회는 remote-tracking ref 로 한다(`git ls-remote` 아님). Stop 훅은 매 턴 끝에 도므로
 네트워크를 타면 안 된다. ref 신선도는 SessionStart 의 `git_staleness.py` 가 맡는다.
@@ -179,7 +179,7 @@ def main() -> None:
         _report("주인이 없어진 과업 —", dead,
                 "이미 머지됐고 브랜치가 origin 에도 로컬에도 없습니다. 끝난 과업의 잔해라 어느 세션이든 지웁니다.")
     print("⚠️ 다른 세션의 진행 중 과업 파일은 절대 지우지 말 것.", file=sys.stderr)
-    # 경고(1)지 차단(2)이 아니다 — 판정 근거가 git 상태 추론이라서다. HARNESS.md 「단계」 참조.
+    # 경고(1)지 차단(2)이 아니다 — 판정 근거가 git 상태 추론이라서다. dev/HARNESS.md 「단계」 참조.
     sys.exit(1)
 
 

@@ -105,12 +105,12 @@ def main() -> None:
     # 자체 dirty 검사는 상시 변경되는 tracked 파일 하나에 막혀 영영 안 타는 실패 사례가 있었다.
     if _git("pull", "--ff-only", "origin", branch, timeout=_FETCH_TIMEOUT_SEC) is not None:
         print(f"[GIT SYNC] 체크아웃이 {behind}커밋 뒤여서 origin/{branch}로 정렬했다. "
-              f"BACKLOG.md 는 최신이다.")
+              f"docs/BACKLOG.md 는 최신이다.")
         return
 
     print(f"[GIT STALE] 체크아웃이 origin/{branch}보다 {behind}커밋 뒤고 자동 정렬(ff-only)이 거부됐다. "
           f"로컬 변경이 유입분과 겹친다.\n"
-          f"  BACKLOG.md·소스를 그대로 믿지 마라 — 이미 머지된 과업을 다시 계획하게 된다.\n"
+          f"  docs/BACKLOG.md·소스를 그대로 믿지 마라 — 이미 머지된 과업을 다시 계획하게 된다.\n"
           f"  착수 전 `git log --oneline HEAD..origin/{branch}`로 그 사이 뭐가 들어왔는지 먼저 봐라.")
 
 

@@ -1,6 +1,6 @@
 ---
 name: frontend
-description: React 프론트엔드/UI 개발 전담 에이전트. frontend/src/ (.tsx/.ts) 편집, 컴포넌트·차트·색상·레이아웃 작업 시 사용. DESIGN_GUIDE.md 4원칙과 디자인 시스템(constants/colors.ts, 차트 래퍼, useApi)을 자동 준수한다.
+description: React 프론트엔드/UI 개발 전담 에이전트. frontend/src/ (.tsx/.ts) 편집, 컴포넌트·차트·색상·레이아웃 작업 시 사용. design/DESIGN_GUIDE.md 4원칙과 디자인 시스템(constants/colors.ts, 차트 래퍼, useApi)을 자동 준수한다.
 model: opus
 effort: high
 ---
@@ -10,7 +10,7 @@ effort: high
 새 UI 패턴을 신설할 때마다 해당 design/ 서브MD를 그 턴 안에 업데이트한다.
 
 # 핵심 책임
-- 편집 전 DESIGN_GUIDE.md → 해당 design/ 서브MD 로드
+- 편집 전 design/DESIGN_GUIDE.md → 해당 design/ 서브MD 로드
 - **4단계 워크플로우 준수**: 리서치(1) → 계획(2) → 구현(3) 순서. 1~2단계에서 코드 수정 금지.
 - 디자인 4원칙 준수 (hex 금지·색상 중앙화·차트 래퍼 통일·포맷 중앙화)
 - 새 패턴 추가 시 design/ 서브MD 즉시 갱신 — "나중에 일괄" 금지

@@ -7,17 +7,17 @@ effort: high
 
 # 역할
 이 프로젝트의 Python/FastAPI 백엔드 코드를 안전하게 수정하는 전문 에이전트.
-DEVGUIDE.md 라우팅 테이블을 기반으로 편집 전 올바른 컨텍스트를 로드하고, 편집 후 관련 MD를 갱신한다.
+dev/DEVGUIDE.md 라우팅 테이블을 기반으로 편집 전 올바른 컨텍스트를 로드하고, 편집 후 관련 MD를 갱신한다.
 
 # 핵심 책임
-- `.py` 파일 편집 전 DEVGUIDE.md → 해당 서브MD 순서로 컨텍스트 로드
+- `.py` 파일 편집 전 dev/DEVGUIDE.md → 해당 서브MD 순서로 컨텍스트 로드
 - **4단계 워크플로우 준수**: 리서치(1) → 계획(2) → 구현(3) 순서. 1~2단계에서 코드 수정 금지.
 - workboard 과업 보드 준수 — 워커는 부모의 과업 파일을 공유하며 배정된 파일만 수정 (정본: `workboard/README.md`)
 - 편집 완료 후 관련 MD 업데이트 (그 턴 안에)
 - 3-레이어 의존성 방향 준수: 도메인 패키지 ← `db/` ← `web/` (역방향 import 금지)
 
 # 작업 원칙
-1. 편집 순서: DEVGUIDE.md Read → 서브MD Read → `dev/CONVENTIONS.md` Read → 편집 (과업 보드 등록·해제는 메인 세션 몫)
+1. 편집 순서: dev/DEVGUIDE.md Read → 서브MD Read → `dev/CONVENTIONS.md` Read → 편집 (과업 보드 등록·해제는 메인 세션 몫)
 2. 새 파일은 `dev/ARCHITECTURE.md`의 golden exemplar를 Read 후 모방. 정본이 없는 첫 구현이면 규칙 100% 준수로 작성 후 exemplar 표에 등재.
 3. DB 접근: 조회는 `db/reads/`, 쓰기는 `db/writes/` — 라우트·배치에서 직접 SQL 금지.
 4. 작성 즉시 셀프체크: 400줄 이하 / 중첩 def 없음 / 커넥션 스코프(with 안 fetch만) / 타입힌트 / 축약어 금지. `python -X utf8 -m kernel.runner`로 확인.
