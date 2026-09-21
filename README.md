@@ -1,10 +1,10 @@
 <div align="center">
 
-# claude-web-harness
+# web-harness
 
 **AI가 내 코드를 망치지 않게 잡아주는 가드레일**
 
-하네스 v3.8.0
+웹 개발용 하네스 v3.8.0
 
 [한국어](README.md) · [English](README.en.md)
 
@@ -94,7 +94,7 @@ SQL 소스와 마이그레이션은 추적 대상으로 유지합니다.
 ### 1단계 — 받기
 
 ```bash
-git clone https://github.com/Gruci/claude-web-harness.git my-project
+git clone https://github.com/Gruci/web-harness.git my-project
 cd my-project
 rm -rf .git && git init && git add -A && git commit -m "init"
 ```

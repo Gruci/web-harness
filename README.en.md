@@ -1,10 +1,10 @@
 <div align="center">
 
-# claude-web-harness
+# web-harness
 
 **A guardrail that keeps AI from wrecking your code**
 
-Harness v3.8.0
+Web development harness v3.8.0
 
 [한국어](README.md) · [English](README.en.md)
 
@@ -93,7 +93,7 @@ It attaches to web services with screens, API-only servers, and batch jobs alike
 ### Step 1 — Get it
 
 ```bash
-git clone https://github.com/Gruci/claude-web-harness.git my-project
+git clone https://github.com/Gruci/web-harness.git my-project
 cd my-project
 rm -rf .git && git init && git add -A && git commit -m "init"
 ```

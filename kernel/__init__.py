@@ -7,5 +7,5 @@ KERNEL_VERSION 은 배포 정체다. clone 해 간 프로젝트가 `harness_inst
 
 KERNEL_VERSION = "3.8.0"
 PROFILE_SCHEMA = 2
-UPSTREAM = "https://github.com/Gruci/claude-web-harness"
+UPSTREAM = "https://github.com/Gruci/web-harness"
 UPSTREAM_BRANCH = "master"
