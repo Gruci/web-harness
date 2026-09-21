@@ -2,12 +2,12 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "claude-web-harness",
+    "title": "web-harness",
     "subtitle": "훅이 커널을 부르고, 커널은 프로파일로만 프로젝트를 안다",
     "quality_profile": "showcase",
     "repository": {
-      "url": "https://github.com/Gruci/claude-web-harness",
-      "revision": "75f4160a3b7631c7ea3df31351ff86cb553c1960"
+      "url": "https://github.com/Gruci/web-harness",
+      "revision": "e3735f3df3235565d80ba44ba3fd5cfeea2eb6a9"
     },
     "views": [
       {

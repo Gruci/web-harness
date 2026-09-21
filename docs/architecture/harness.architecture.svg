@@ -86,7 +86,7 @@ svg[data-preset="blueprint"] .c-security-group,
     .c-security-group { fill: transparent; stroke: var(--security-stroke); stroke-dasharray: 4,4; }
 .c-region { fill: rgba(251, 191, 36, 0.05); stroke: var(--cloud-stroke); stroke-dasharray: 8,4; }
 </style>
-        <title id="archify-diagram-title">claude-web-harness</title>
+        <title id="archify-diagram-title">web-harness</title>
         <desc id="archify-diagram-description">훅이 커널을 부르고, 커널은 프로파일로만 프로젝트를 안다</desc>
         <!-- Definitions -->
         <defs>
