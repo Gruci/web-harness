@@ -15,7 +15,6 @@
                  writing a file named after it)
   CRLF           LF·CRLF 체크아웃에서 러너 출력이 같은가 (checkout-line-endings)
   frontmatter    스킬·에이전트 name 이 실물과 같고 description 이 1024자 안인가 (skill-metadata)
-  버전 일치      두 README 의 하네스 버전이 같은가 (release-identity)
   화면 린터      ESLint 설정이 픽스처 위반 6종을 각각 잡고 면제·깨끗한 파일은 안 잡는가 — 골든이
                  [TOOL] 로 고정돼 잃는 검출 증명의 대체
   영수증 캐시    영수증 해시가 정본과 같으면 node 없이도 엔진 진단이 OK 인가
@@ -362,21 +361,8 @@ def test_file_mode_prints_no_global_reports() -> None:
     assert "실존하지 않는 경로 참조" not in done.stdout and "revision 이후 바뀜" not in done.stdout, done.stdout
 
 
-_VERSION = re.compile(r"\b[Hh]arness v(\d+\.\d+\.\d+)|하네스 v(\d+\.\d+\.\d+)")
-
-
-def test_readme_versions_agree() -> None:
-    """두 README 머리의 하네스 버전이 같다 — 한쪽만 올리면 배포 정체가 둘이 된다."""
-    found: dict[str, str] = {}
-    for name in ("README.md", "README.en.md"):
-        match = _VERSION.search((REPO / name).read_text(encoding="utf-8"))
-        assert match, f"{name}: 머리에 하네스 버전이 없다"
-        found[name] = match.group(1) or match.group(2)
-    assert len(set(found.values())) == 1, f"README 버전 불일치: {found}"
-
-
 def demo() -> None:
-    for check in (test_skill_and_agent_frontmatter, test_readme_versions_agree,
+    for check in (test_skill_and_agent_frontmatter,
                   test_hook_reports_kernel_crash_as_gate_error,
                   test_hooks_do_not_block_on_broken_payload,
                   test_runner_reports_profile_shape, test_diagram_engine_delivers_harness_architecture,

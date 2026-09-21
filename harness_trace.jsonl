@@ -15,3 +15,4 @@
 {"ts": "2026-09-17T16:28:51", "sid": "a47bb38f", "hook": "check_file_rules", "kind": "gate", "gate": "md_style", "file": "docs/tasks/research_workboard.md", "msg": "docs/tasks/research_workboard.md:1: ⑬d 머리 역할 계약 누락 — `> 담는 것: … 담지 않는 것: … 읽는 시점: …`"}
 {"ts": "2026-09-17T16:32:46", "sid": "a47bb38f", "hook": "check_file_rules", "kind": "gate", "gate": "md_orphans", "file": "BACKLOG.md", "msg": "BACKLOG.md: 고아 — 허브에서 도달 불가. 라우팅표에 등재하거나 폐기하라"}
 {"ts": "2026-09-17T17:12:31", "sid": "a47bb38f", "hook": "check_file_rules", "kind": "gate", "gate": "md_style", "file": "workboard/harness-workboard-root.md", "msg": "workboard/harness-workboard-root.md:1: ⑬d 머리 역할 계약 누락 — `> 담는 것: … 담지 않는 것: … 읽는 시점: …`"}
+{"ts": "2026-09-21T15:11:12", "sid": "b50b346f", "hook": "check_file_rules", "kind": "gate", "gate": "line_limit", "file": "tests/test_harness_self.py", "msg": "tests/test_harness_self.py: 410줄 (>400)"}

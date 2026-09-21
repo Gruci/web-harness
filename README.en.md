@@ -291,7 +291,7 @@ Blocking on an inference leaves no way out when the inference is wrong. That hap
 
 ### What gets caught
 
-Forty-six checks run on every file save. The full list and rationale live in `dev/HARNESS.md`. Representative examples:
+Forty-eight checks run on every file save. The full list and rationale live in `dev/HARNESS.md`. Representative examples:
 
 | Caught | Why, and the fix |
 |:--|:--|
