@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,8 @@ DEFAULTS: dict[str, Any] = {
 
 def pack_path(name: str) -> Path | None:
     """이 언어팩의 실물. 프로젝트 것이 커널 것을 이긴다."""
+    if not isinstance(name, str) or not re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_-]*", name):
+        raise ValueError(f"잘못된 언어팩 이름: {name!r}")
     for candidate in (ROOT / PROJECT_DIR / f"{name}.py", SHIPPED_DIR / f"{name}.py"):
         if candidate.is_file():
             return candidate
@@ -63,26 +66,38 @@ def available() -> list[str]:
 
 
 def load(name: str | None) -> dict[str, Any]:
-    """언어팩을 읽어 기본값 위에 얹는다. 이름이 없거나 못 찾으면 기본값(파이썬)."""
+    """선언한 팩은 반드시 읽고 검증한다. 미선언만 기본값을 사용한다."""
     pack = dict(DEFAULTS)
     pack["PATTERNS"] = dict(DEFAULTS["PATTERNS"])
-    if not name:
+    if name is None:
         return pack
     path = pack_path(name)
     if path is None:
-        return pack
+        raise ValueError(f"언어팩을 찾을 수 없음: {name}")
     spec = importlib.util.spec_from_file_location(f"_lang_{name}", path)
     if spec is None or spec.loader is None:
-        return pack
+        raise ValueError(f"언어팩 로더를 만들 수 없음: {name}")
     module = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(module)
-    except Exception:
-        return pack                     # 깨진 언어팩은 기본값으로 — 조용히 죽지는 않는다
+    except Exception as exc:
+        raise ValueError(f"언어팩 로드 실패: {name}: {type(exc).__name__}") from exc
     for key in ("EXT", "SYNTAX", "NOT_APPLICABLE", "LINTERS"):
         if hasattr(module, key):
             pack[key] = getattr(module, key)
     given = getattr(module, "PATTERNS", None)
+    if given is not None and not isinstance(given, dict):
+        raise ValueError(f"언어팩 PATTERNS는 매핑이어야 함: {name}")
     if given:
         pack["PATTERNS"].update(given)   # 선언한 것만 덮고 나머지는 기본값 유지
+    if not isinstance(pack["NOT_APPLICABLE"], dict):
+        raise ValueError(f"언어팩 NOT_APPLICABLE는 매핑이어야 함: {name}")
+    if not isinstance(pack["EXT"], (tuple, list)) or not pack["EXT"] or not all(
+            isinstance(item, str) and item for item in pack["EXT"]):
+        raise ValueError(f"언어팩 EXT는 소스 패턴 목록이어야 함: {name}")
+    if not isinstance(pack["SYNTAX"], str) or not pack["SYNTAX"]:
+        raise ValueError(f"언어팩 SYNTAX는 이름이어야 함: {name}")
+    if not isinstance(pack["LINTERS"], (tuple, list)) or not all(
+            isinstance(item, dict) for item in pack["LINTERS"]):
+        raise ValueError(f"언어팩 LINTERS는 검사 선언 목록이어야 함: {name}")
     return pack

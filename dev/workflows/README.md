@@ -5,6 +5,7 @@
 | 작업 | 정본 | 선택 기준 |
 |---|---|---|
 | 기능 개발 | [feature-workflow.md](feature-workflow.md) | 기능, 동작 변경, 리팩터링, 성능 개선, 버그 수정 |
+| 프로젝트 조립 | [harness-assembly.md](harness-assembly.md) | 언어 선택과 첫 코드의 분류 및 검사 연결 |
 | 풀스택 구현 | [full-feature.md](full-feature.md) | 서버와 소비 화면을 함께 변경 |
 | 테스트 | [test.md](test.md) | 테스트 작성, 실행, 결과 판정 |
 | 서비스 검수 | [review-loop.md](review-loop.md) | 화면, 지표, 문구의 업무 의미 검증 |

@@ -24,15 +24,15 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 FIXTURE = HERE / "fixtures" / "miniproj"
 GOLDEN = HERE / "golden" / "full.txt"
-# 프로파일을 뺀 채로 돌린 결과 — "하네스만 얹은 새 프로젝트 첫날"이 이 모습이다.
+# 스택과 그래프가 아직 정해지지 않은 schema 3 첫날의 결정 요청.
 GOLDEN_BARE = HERE / "golden" / "bare.txt"
-# 서버 언어가 파이썬이 아닌 레포. 언어 무관 검사는 돌고, 구문·관용구 검사는 [SKIP] 이어야 한다.
+# Go 구문 검사 미지원은 [TOOL]이며 완료 검증에서 성공할 수 없다.
 FIXTURE_GO = HERE / "fixtures" / "goproj"
 GOLDEN_GO = HERE / "golden" / "go.txt"
 
 
 def _ensure_fixtures() -> None:
-    """픽스처 프로파일이 없으면 정본에서 다시 짓는다.
+    """픽스처 프로파일이 없거나 정본과 다르면 다시 짓는다.
 
     픽스처 `.gitignore` 가 `harness_profile.py` 를 빼고 그 파일은 바깥 레포에도 적용된다 —
     즉 픽스처 프로파일은 한 번도 커밋된 적이 없고 clone 직후엔 존재하지 않는다. 없으면
@@ -42,14 +42,37 @@ def _ensure_fixtures() -> None:
 
     내용의 정본은 `tests/fixture_files.py` 와 `tests/fixture_go.py` 이므로 다시 지으면 된다.
     """
-    if all((fixture / "harness_profile.py").exists() for fixture in (FIXTURE, FIXTURE_GO)):
+    sys.path.insert(0, str(HERE))
+    from fixture_files import FILES
+    from fixture_go import FILES as GO_FILES
+    expected = ((FIXTURE, FILES), (FIXTURE_GO, GO_FILES))
+    if all((fixture / "harness_profile.py").exists() and
+           (fixture / "harness_profile.py").read_text(encoding="utf-8") == files["harness_profile.py"]
+           for fixture, files in expected):
         return
     sys.path.insert(0, str(HERE))
     import build_fixture                 # noqa: E402  (경로 삽입 후에만 import 가능)
 
-    print("[픽스처] 프로파일이 없어 정본에서 다시 짓는다 — "
-          "없으면 게이트 대조가 프로파일 없는 상태로 돌아 반쪽이 된다")
+    print("[픽스처] 프로파일을 현재 정본과 일치하도록 다시 짓는다")
     build_fixture.main()
+
+
+def prepare_graph(work: Path, syntax: str) -> None:
+    """Use a recorded fixture decision, not an unverified approved boolean."""
+    sys.path.insert(0, str(REPO))
+    sys.path.insert(0, str(HERE))
+    from kernel import feature_map, graph_workflow
+    from build_fixture import component_graph
+
+    directory = work / "docs/architecture"
+    directory.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(REPO / "docs/architecture/components.schema.json", directory)
+    graph = component_graph(syntax)
+    proposal = graph_workflow.propose(work, graph, "Review the regression fixture boundaries", "golden")
+    graph_workflow.decide(work, proposal["id"], "approve", "Approve these fixture boundaries",
+                          "fixture://golden/user-decision")
+    graph_workflow.apply(work, proposal["id"])
+    feature_map.generate(work)
 
 
 def _git(cwd: Path, *args: str) -> None:
@@ -60,20 +83,26 @@ def _git(cwd: Path, *args: str) -> None:
 def capture(checker_dir: Path, bare: bool = False, fixture: Path | None = None) -> str:
     """픽스처+검사기를 임시 레포에 세우고 전체 검사 출력을 받는다.
 
-    bare=True 면 프로파일을 지운다 — 프로젝트를 모르는 상태에서 게이트가 어떻게 처신하는지가
-    새 프로젝트 첫날의 모습이고, 그게 이 하네스의 존재 이유라 정답지로 함께 동결한다.
+    bare=True는 스택 미선택 상태이며 첫 코드가 분류 결정 없이 통과하지 않아야 한다.
     """
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp) / "proj"
-        shutil.copytree(fixture or FIXTURE, work)
         if bare:
-            (work / "harness_profile.py").unlink(missing_ok=True)
+            work.mkdir()
+            (work / "harness_profile.py").write_text("PROFILE_SCHEMA = 3\nARCH = 'headless'\n", encoding="utf-8")
+            (work / "first.rb").write_text("puts 'classification pending'\n", encoding="utf-8")
+        else:
+            shutil.copytree(fixture or FIXTURE, work)
+            if fixture != FIXTURE_GO:
+                (work / "unclassified.py").write_text("VALUE = 1\n", encoding="utf-8")
 
         # 검사기가 평면 배치(static_check*.py)인지 패키지(kernel/)인지에 따라 진입점이 다르다.
         if (checker_dir / "runner.py").exists():
             shutil.copytree(checker_dir, work / "kernel",
                             ignore=shutil.ignore_patterns("__pycache__"))
             command = [sys.executable, "-X", "utf8", "-m", "kernel.runner"]
+            if not bare:
+                command.append("--verify")
         else:
             for src in sorted(checker_dir.glob("static_check*.py")):
                 shutil.copy2(src, work / src.name)
@@ -81,6 +110,8 @@ def capture(checker_dir: Path, bare: bool = False, fixture: Path | None = None) 
 
         _git(work, "init", "-q")
         _git(work, "add", "-A")
+        if not bare:
+            prepare_graph(work, "go" if fixture == FIXTURE_GO else "python")
 
         # 그림 엔진 위임은 [TOOL] 로 고정한다 — 정답지가 머신의 node 유무에 따라 갈리면 안 된다.
         # 엔진 실물은 tests/test_harness_self.py 가 돈다.
@@ -92,7 +123,19 @@ def capture(checker_dir: Path, bare: bool = False, fixture: Path | None = None) 
         body = done.stdout
         if done.stderr.strip():
             body += "\n--- stderr ---\n" + done.stderr
-        return f"exit={done.returncode}\n{body}"
+        return f"exit={done.returncode}\n{body}".replace(str(work), "<fixture>")
+
+
+def assert_meaningful(actual: str, bare: bool, go: bool) -> None:
+    """Reject broken setup snapshots before they can replace useful regressions."""
+    if "Traceback" in actual or "profile_shape)" in actual:
+        raise ValueError("Fixture setup failed; do not accept this as a golden")
+    required = ("exit=3", "needs_decision") if bare else (
+        ("exit=2", "component_classification", "컴포넌트 구문 분석", "[TOOL]") if go else
+        ("exit=2", "component_classification", "component_dependencies", "unclassified.py", "private module bypass"))
+    missing = [marker for marker in required if marker not in actual]
+    if missing:
+        raise ValueError(f"Regression evidence missing: {missing}")
 
 
 def main(argv: list[str]) -> int:
@@ -108,10 +151,11 @@ def main(argv: list[str]) -> int:
     if go:
         golden, fixture, label = GOLDEN_GO, FIXTURE_GO, "Go 프로젝트"
     elif bare:
-        golden, fixture, label = GOLDEN_BARE, FIXTURE, "프로파일 없음"
+        golden, fixture, label = GOLDEN_BARE, FIXTURE, "스택 미선택·첫 코드 분류 대기"
     else:
         golden, fixture, label = GOLDEN, FIXTURE, "전 게이트"
     actual = capture(checker_dir, bare=bare, fixture=fixture)
+    assert_meaningful(actual, bare, go)
 
     if "--update" in argv:
         golden.parent.mkdir(parents=True, exist_ok=True)

@@ -115,8 +115,14 @@ def check_agents(root: Path) -> int:
     """Report incomplete disk wiring and return nonzero without writing or running hooks."""
     problems: list[str] = []
     for rel in ("AGENTS.md", "CLAUDE.md", "kernel/hook.py", "kernel/runner.py",
-                "dev/workflows/README.md"):
+                "dev/workflows/README.md", "kernel/component_graph.py", "kernel/graph_workflow.py",
+                "kernel/graph_checks.py", "kernel/graph_notifications.py", "kernel/port_contracts.py",
+                "docs/architecture/components.schema.json", "dev/COMPONENTS.md",
+                "dev/workflows/harness-assembly.md"):
         _read(root, rel, problems)
+    assembly = ".agents/skills/harness-assembly-cdx/SKILL.md"
+    if "dev/workflows/harness-assembly.md" not in _read(root, assembly, problems):
+        problems.append(f"{assembly}: missing reference to shared assembly workflow")
     _check_adapters(root, problems)
     for agent in ("claude", "codex"):
         _check_hooks(root, agent, problems)

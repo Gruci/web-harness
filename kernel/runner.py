@@ -20,15 +20,16 @@
 
 from __future__ import annotations
 
+import fnmatch
 import importlib
 import sys
 from pathlib import Path
 
-from kernel import diagram, linters, profile
+from kernel import diagram, graph_checks, linters, profile
 # 재수출 — trace(violation_path)·설치 스크립트(BASELINE_FILE·load_baseline)가 러너 경유로 쓴다.
 from kernel.baseline import (BASELINE_FILE, apply_baseline as _apply_baseline,  # noqa: F401
                              load_baseline, violation_path)
-from kernel.context import READ_ENC, ROOT, _rel, app_code, is_harness_own, tracked
+from kernel.context import ROOT, _rel, app_code, is_harness_own, tracked
 from kernel.gates import (api_types, arch_diagram, core, duplication, harness_self, layers,
                           md_graph, md_style, orphan_api, placement, prompt_version, schema,
                           tests_pairing)
@@ -141,8 +142,7 @@ def _need_symbol(name: str) -> str:
 
 def _kernel_sections(files: list[Path], ui_files: list[Path]) -> list[Section]:
     both = files + ui_files
-    reads, web = _under(files, "read"), _under(files, "web")
-    writes, batch = _under(files, "write"), _under(files, "batch")
+    web = _under(files, "routes")
     vocab = profile.VOCAB
     settings = profile.FILES.get("settings")
     # 화면 6종(10·17~20·42)은 ESLint 한 번에서 나온다 — 정본은 kernel/eslint.harness.mjs
@@ -158,14 +158,6 @@ def _kernel_sections(files: list[Path], ui_files: list[Path]) -> list[Section]:
         _syntax_section("func_limit", "함수 길이 상한", core.check_func_length, (files,), files, NO_PY),
         _entry("type_checking_future", "TYPE_CHECKING↔future annotations 짝",
                core.check_type_checking_future(files), files, NO_PY),
-        _entry("reads_writes", "읽기 레이어의 쓰기 SQL·commit", layers.check_reads_writes(files),
-               reads, _need_layer("read")),
-        _entry("reads_col_interp", "읽기 레이어 컬럼 식별자 raw 보간",
-               layers.check_reads_col_interpolation(files), reads, _need_layer("read")),
-        _entry("writes_round", "쓰기 레이어 round() 절삭", layers.check_writes_round(files),
-               writes, _need_layer("write")),
-        _entry("batch_select", "배치 직접 SELECT", layers.check_batch_direct_select(files),
-               batch, _need_layer("batch")),
         _entry("abbrev_names", "축약 이름 단독 대입", core.check_abbrev_names(files),
                files and vocab["abbrev_names"], "설정에 금지할 축약어를 안 적었음"),
         _entry("abbrev_prefixes", "축약 접두 식별자", core.check_abbrev_prefixes(both),
@@ -176,18 +168,10 @@ def _kernel_sections(files: list[Path], ui_files: list[Path]) -> list[Section]:
         _syntax_section("type_hints", "공개 함수 타입힌트", core.check_type_hints, (files,), files, NO_PY),
         _entry("secrets", "시크릿 토큰 하드코딩", core.check_secrets(both), both, NO_PY),
         _ui_entry("ts_any", "TS any 타입", lint, ui_files, NO_UI),
-        _syntax_section("conn_processing", "커넥션 블록 내 가공",
-                        layers.check_connection_processing, (files,),
-                        _under(files, "db") and profile.symbol("db_accessor"),
-                        _need_symbol("db_accessor")),
         _entry("env_access", "설정 밖 환경변수 조회", layers.check_env_access(files),
                files and settings, "설정에 환경변수 모듈을 안 적었음"),
         _syntax_section("web_async", "await 없는 async 핸들러",
                         layers.check_web_async_no_await, (files,), web, _need_layer("web")),
-        _entry("accessor_import", "커넥션 접근자 import 단일 경로",
-               layers.check_accessor_import_path(files),
-               (reads or _under(files, "write")) and profile.symbol("db_accessor_module"),
-               _need_symbol("db_accessor_module")),
         _entry("ssl_bypass", "전역 SSL 패치 호출 위치", layers.check_ssl_bypass_location(files),
                files and profile.symbol("ssl_bypass"), _need_symbol("ssl_bypass")),
         _syntax_section("routes_error", "라우트 에러 응답 형식",
@@ -210,9 +194,6 @@ def _kernel_sections(files: list[Path], ui_files: list[Path]) -> list[Section]:
                profile.VERSIONED_PROMPTS and prompt_version.ready(),
                "설정에 버전 관리 프롬프트 목록을 안 적었음" if not profile.VERSIONED_PROMPTS
                else "원격 기본 브랜치 미상 — 비교 기준이 없음"),
-        _entry("file_placement", "앱 코드 배치",
-               placement.check_file_placement(files, ui_files),
-               placement.layer_prefixes(), "설정에 폴더를 하나도 안 적었음"),
         _entry("test_pairing", "수집·계산 모듈의 행동 테스트 짝",
                tests_pairing.check_module_test_pairing(files),
                profile.BEHAVIOR_TESTED_ROOTS, "설정에 테스트 대상 폴더를 안 적었음"),
@@ -333,9 +314,10 @@ def source_files() -> tuple[list[Path], list[Path]]:
     0건이 되고, 그 상태가 화면에는 초록불로 보인다.
     """
     ui = profile.layer("ui")
-    files = [f for f in app_code(*profile.SOURCE_EXT) if _in_scope(f)]
     ui_files = ([f for f in app_code(*profile.UI_EXT, under=ui) if _in_scope(f)]
                 if ui else [])
+    files = ([f for f in app_code(*profile.SOURCE_EXT) if _in_scope(f) and f not in ui_files]
+             if profile.SOURCE_EXT else [])
     return files, ui_files
 
 
@@ -366,13 +348,13 @@ def _single_file_lists(raw_path: str) -> tuple[list[Path], list[Path], bool, lis
     exclude = profile.SCOPE["exclude_all"]
     if not p.exists() or (exclude and rel.startswith(exclude)):
         return [], [], False, []
-    if p.suffix in (".py", ".ts", ".tsx") and is_harness_own(rel):
+    if p.suffix != ".md" and is_harness_own(rel):
         return [], [], False, []
-    if p.suffix == ".py":
-        return [p], [], False, []
     ui = profile.layer("ui")
-    if p.suffix in (".ts", ".tsx") and ui and rel.startswith(ui):
+    if ui and rel.startswith(ui) and any(fnmatch.fnmatchcase(rel, pat) for pat in profile.UI_EXT):
         return [], [p], False, []
+    if any(fnmatch.fnmatchcase(rel, pat) for pat in profile.SOURCE_EXT):
+        return [p], [], False, []
     if p.suffix == ".md":
         # 전역 교차검사는 정본 MD 편집일 때만 재실행. 스타일은 그 파일만.
         style = [p] if md_style.style_target(rel) else []
@@ -386,6 +368,9 @@ def main(argv: list[str]) -> int:
     # Windows cp949 콘솔에서 위반 라인(유니코드 포함) 출력 크래시 방지
     if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
         sys.stdout.reconfigure(errors="replace")
+    if profile.PROFILE_ERRORS:
+        _print_sections([("profile_shape", "프로파일 형식", profile.PROFILE_ERRORS, None)])
+        return 1
     if not profile.LOADED:
         print(f"[SETUP] {profile.PROFILE_FILE} 없음 — 프로젝트를 모르는 상태다. "
               f"레이어를 요구하는 게이트는 전부 [SKIP] 이다.")
@@ -393,13 +378,21 @@ def main(argv: list[str]) -> int:
     if not full:
         files, ui_files, include_md, md_files = _single_file_lists(argv[1])
         if not files and not ui_files and not include_md and not md_files:
-            return 0
+            include_md = False
     else:
         files, ui_files = source_files()
         include_md, md_files = True, tracked_md_files()
     sections = _apply_baseline(_build_sections(files, ui_files, include_md, md_files, full))
+    sections += graph_checks.sections(ROOT, verify="--verify" in argv)
     total = _print_sections(sections)
 
+    if "--verify" in argv and any(skip and skip[0] == "TOOL" for _, _, _, skip in sections):
+        print("\n필수 검사 미검증 — 완료로 처리할 수 없다.")
+        return 2
+    violations = [v for _, _, found, _ in sections for v in found]
+    if violations and all("needs_decision" in v for v in violations):
+        print("[DECISION] 분류 변경안을 사용자에게 제안하고 응답을 기록하라.")
+        return 3
     if total:
         print(f"\n총 {total}건 위반.")
         return 1

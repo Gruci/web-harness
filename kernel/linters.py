@@ -40,7 +40,8 @@ from kernel.context import ROOT, _rel
 TIMEOUT_SECONDS = 90
 
 # `path:line:col: message` 와 `path:line: message` — 대부분의 도구가 이 모양으로 낸다.
-_GCC_LINE = re.compile(r"^(?P<path>[^\s:][^:]*):(?P<line>\d+):(?:(?P<col>\d+):)?\s*(?P<msg>.+)$")
+_GCC_LINE = re.compile(r"^(?P<path>\S.*?):(?P<line>\d+):(?:(?P<col>\d+):)?\s*(?P<msg>.+)$")
+_TSC_LINE = re.compile(r"^(?P<path>.+)\((?P<line>\d+),(?P<col>\d+)\):\s*(?P<msg>.+)$")
 
 
 def _parse_gcc(output: str, slug: str) -> list[str]:
@@ -49,10 +50,12 @@ def _parse_gcc(output: str, slug: str) -> list[str]:
         line = raw.strip()
         if not line or line.startswith(("#", "warning: ", "note: ")):
             continue
-        match = _GCC_LINE.match(line)
+        match = _GCC_LINE.match(line) or _TSC_LINE.match(line)
         if not match:
             continue
-        path = match.group("path").replace("\\", "/").lstrip("./")
+        path = match.group("path").replace("\\", "/")
+        if path.startswith("./"):
+            path = path[2:]
         found.append(f"{path}:{match.group('line')}: {match.group('msg').strip()} ({slug})")
     return found
 
@@ -73,6 +76,10 @@ def missing_tool(entry: dict) -> str:
 def run_one(entry: dict) -> tuple[list[str], str]:
     """한 도구를 돌린다. 반환은 (위반 목록, 건너뛴 사유). 사유가 있으면 [TOOL]."""
     slug = _entry_name(entry)
+    parser_name = str(entry.get("parse", "gcc"))
+    parser = PARSERS.get(parser_name)
+    if parser is None:
+        return [], f"{slug}: 알 수 없는 출력 파서 {parser_name}"
     absent = missing_tool(entry)
     if absent:
         hint = entry.get("install") or ""
@@ -82,12 +89,15 @@ def run_one(entry: dict) -> tuple[list[str], str]:
         done = subprocess.run(entry["cmd"], cwd=ROOT, capture_output=True, text=True,
                               encoding="utf-8", errors="replace", timeout=TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
-        return [f"{slug}: {TIMEOUT_SECONDS}초 내 응답 없음 — 검사 불능"], ""
+        return [], f"{slug}: {TIMEOUT_SECONDS}초 내 응답 없음 — 검사 불능"
     except OSError as exc:
-        return [f"{slug}: 실행 실패 {exc.__class__.__name__}"], ""
+        return [], f"{slug}: 실행 실패 {exc.__class__.__name__}"
 
-    parser = PARSERS.get(str(entry.get("parse", "gcc")), _parse_gcc)
-    return parser((done.stdout or "") + "\n" + (done.stderr or ""), slug), ""
+    output = (done.stdout or "") + "\n" + (done.stderr or "")
+    found = parser(output, slug)
+    if done.returncode and not found:
+        return [], f"{slug}: 종료 코드 {done.returncode}, 해석 가능한 진단 없음 — {output.strip()[:300]}"
+    return found, ""
 
 
 def sections() -> list[tuple[str, str, list[str], str]]:
@@ -181,6 +191,9 @@ def eslint_report(npm_dir: Path, targets: list[Path], allow: dict[str, list[str]
         for slug in UI_SLUGS:
             found[slug].append(f"eslint 실행 실패 — {reason}")
         return found
+    if not isinstance(report, list) or any(not isinstance(entry, dict) or "filePath" not in entry
+                                           for entry in report):
+        return {slug: ["eslint 실행 실패 — 잘못된 JSON 보고서"] for slug in UI_SLUGS}
     for entry in report:
         rel = _rel(Path(entry["filePath"]))
         for message in entry.get("messages", []):
@@ -192,6 +205,9 @@ def eslint_report(npm_dir: Path, targets: list[Path], allow: dict[str, list[str]
             tag = _SLUG_TAG.match(message.get("message", ""))
             if tag and tag.group(1) in found:
                 found[tag.group(1)].append(head + _SLUG_TAG.sub("", message["message"]))
+    if done.returncode and not any(found.values()):
+        reason = (done.stderr or done.stdout).strip()[:300]
+        return {slug: [f"eslint 실행 실패 — 종료 코드 {done.returncode}: {reason}"] for slug in UI_SLUGS}
     return found
 
 

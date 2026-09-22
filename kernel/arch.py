@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,8 @@ DEFAULTS: dict[str, Any] = {"NOT_APPLICABLE": {}}
 
 def pack_path(name: str) -> Path | None:
     """이 아키텍처팩의 실물. 프로젝트 것이 커널 것을 이긴다."""
+    if not isinstance(name, str) or not re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_-]*", name):
+        raise ValueError(f"잘못된 아키텍처팩 이름: {name!r}")
     for candidate in (ROOT / PROJECT_DIR / f"{name}.py", SHIPPED_DIR / f"{name}.py"):
         if candidate.is_file():
             return candidate
@@ -43,22 +46,24 @@ def available() -> list[str]:
 
 
 def load(name: str | None) -> dict[str, Any]:
-    """아키텍처팩을 읽는다. 이름이 없거나 못 찾거나 깨졌으면 기본값(전 게이트 성립)."""
+    """선언한 팩은 반드시 읽고 검증한다. 미선언만 기본값을 사용한다."""
     pack: dict[str, Any] = {"NOT_APPLICABLE": {}}
-    if not name:
+    if name is None:
         return pack
     path = pack_path(name)
     if path is None:
-        return pack
+        raise ValueError(f"아키텍처팩을 찾을 수 없음: {name}")
     spec = importlib.util.spec_from_file_location(f"_arch_{name}", path)
     if spec is None or spec.loader is None:
-        return pack
+        raise ValueError(f"아키텍처팩 로더를 만들 수 없음: {name}")
     module = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(module)
-    except Exception:
-        return pack                     # 깨진 팩은 기본값으로 — 러너를 크래시시키지 않는다
+    except Exception as exc:
+        raise ValueError(f"아키텍처팩 로드 실패: {name}: {type(exc).__name__}") from exc
     given = getattr(module, "NOT_APPLICABLE", None)
+    if given is not None and not isinstance(given, dict):
+        raise ValueError(f"아키텍처팩 NOT_APPLICABLE는 매핑이어야 함: {name}")
     if given:
         pack["NOT_APPLICABLE"] = dict(given)
     return pack

@@ -21,10 +21,7 @@ from kernel.context import ROOT
 
 PROFILE_FILE = "harness_profile.py"
 
-_LAYER_KEYS = (
-    "read", "write", "db", "web", "routes", "ui", "ui_admin", "ui_tokens",
-    "tests", "schema", "shared", "batch",
-)
+_CHECK_PATH_KEYS = ("ui", "ui_admin", "ui_tokens", "tests", "routes", "schema")
 _FILE_KEYS = ("settings", "ssl_util")
 _SYMBOL_KEYS = ("db_accessor", "db_accessor_module", "ssl_bypass", "error_response")
 _VOCAB_KEYS = ("ui_denylist", "abbrev_prefixes", "abbrev_names")
@@ -55,24 +52,24 @@ _MOD = _load()
 # 빠진다.** 둘 다 화면엔 아무것도 안 뜬다. 그래서 강제(coerce)하기 전에 모양부터 본다.
 _KNOWN_NAMES = frozenset({
     "STAGE", "LANG", "ARCH", "SYNTAX", "SOURCE_EXT", "UI_EXT", "PATTERNS", "NOT_APPLICABLE",
-    "LINTERS", "LAYERS", "FILES", "SYMBOLS", "VOCAB", "ALLOWLIST", "MD", "SCOPE", "HUBS",
+    "LINTERS", "CHECK_PATHS", "FILES", "SYMBOLS", "VOCAB", "ALLOWLIST", "MD", "SCOPE", "HUBS",
     "HUB_DOMAIN_MD_IMPLICIT", "DOC_SYNC", "BEHAVIOR_TESTED_ROOTS", "LOCAL_GATES", "HARNESS_MAP",
     "ROOT_FILES", "LEGACY_PATHS", "LESSONS_DOC", "AGENT_MODEL_POLICY", "MAINTENANCE",
     "VERSIONED_PROMPTS", "UI_COPY", "HARNESS_SELF", "HARNESS_ASSETS", "PRESET_SUMMARY",
-    "PRESET_FITS", "PROFILE_SCHEMA", "UI_NPM_DIR",
+    "PRESET_FITS", "PROFILE_SCHEMA", "UI_NPM_DIR", "COMPONENT_GRAPH",
 })
-_STR_NAMES = ("STAGE", "LANG", "ARCH", "SYNTAX", "HARNESS_MAP", "LESSONS_DOC", "UI_NPM_DIR")
-_DICT_NAMES = ("LAYERS", "FILES", "SYMBOLS", "VOCAB", "ALLOWLIST", "MD", "SCOPE", "PATTERNS",
+_STR_NAMES = ("STAGE", "LANG", "ARCH", "SYNTAX", "HARNESS_MAP", "LESSONS_DOC", "UI_NPM_DIR", "COMPONENT_GRAPH")
+_DICT_NAMES = ("CHECK_PATHS", "FILES", "SYMBOLS", "VOCAB", "ALLOWLIST", "MD", "SCOPE", "PATTERNS",
                "NOT_APPLICABLE", "AGENT_MODEL_POLICY", "MAINTENANCE", "UI_COPY")
 _SEQ_NAMES = ("HUBS", "DOC_SYNC", "BEHAVIOR_TESTED_ROOTS", "LOCAL_GATES", "ROOT_FILES",
               "SOURCE_EXT", "UI_EXT", "LINTERS", "LEGACY_PATHS", "VERSIONED_PROMPTS",
               "HARNESS_ASSETS")
 _SUB_KEYS = {
-    "LAYERS": _LAYER_KEYS, "FILES": _FILE_KEYS, "SYMBOLS": _SYMBOL_KEYS, "VOCAB": _VOCAB_KEYS,
+    "CHECK_PATHS": _CHECK_PATH_KEYS, "FILES": _FILE_KEYS, "SYMBOLS": _SYMBOL_KEYS, "VOCAB": _VOCAB_KEYS,
     "ALLOWLIST": _ALLOWLIST_KEYS, "MD": _MD_KEYS, "SCOPE": ("exclude_all", "exclude_scratch"),
 }
 _SEQ_VALUED = ("VOCAB", "ALLOWLIST", "MD", "SCOPE")
-_PATH_VALUED = ("LAYERS", "FILES", "SYMBOLS")
+_PATH_VALUED = ("CHECK_PATHS", "FILES", "SYMBOLS")
 
 
 def _is_seq(value: object) -> bool:
@@ -82,7 +79,7 @@ def _is_seq(value: object) -> bool:
 def _shape_errors(mod: Any) -> list[str]:
     """프로파일 원문의 모양 위반. 이름 오타·문자열/튜플 혼동·모르는 하위 키."""
     if mod is None:
-        return []
+        return [f"{PROFILE_FILE}: PROFILE_SCHEMA = 3 프로파일과 컴포넌트 그래프를 먼저 구성하라"]
     found: list[str] = []
     for name in vars(mod):
         if name.isupper() and len(name) > 1 and name not in _KNOWN_NAMES:
@@ -92,6 +89,10 @@ def _shape_errors(mod: Any) -> list[str]:
         if value is not None and not isinstance(value, str):
             found.append(f"{PROFILE_FILE}: {name} 은 문자열이어야 한다 — {type(value).__name__}")
     schema = getattr(mod, "PROFILE_SCHEMA", None)
+    if getattr(mod, "COMPONENT_GRAPH", "docs/architecture/components.json") != "docs/architecture/components.json":
+        found.append(f"{PROFILE_FILE}: COMPONENT_GRAPH must be docs/architecture/components.json")
+    if schema != 3:
+        found.append(f"{PROFILE_FILE}: 서식 {schema!r} 실행 불가 — PROFILE_SCHEMA = 3으로 명시적으로 이전하라")
     if schema is not None and (isinstance(schema, bool) or not isinstance(schema, int)):
         found.append(f"{PROFILE_FILE}: PROFILE_SCHEMA 는 정수여야 한다 — {type(schema).__name__}")
     for name in _DICT_NAMES:
@@ -147,7 +148,9 @@ PROFILE_SCHEMA: int = (
 # 설치 스크립트가 프리셋으로 덮어쓴다.
 IS_HARNESS_SELF: bool = bool(getattr(_MOD, "HARNESS_SELF", False)) if _MOD else False
 
-LAYERS = _mapping("LAYERS", _LAYER_KEYS, None)
+COMPONENT_GRAPH: str = getattr(_MOD, "COMPONENT_GRAPH", "docs/architecture/components.json")
+
+CHECK_PATHS = _mapping("CHECK_PATHS", _CHECK_PATH_KEYS, None)
 FILES = _mapping("FILES", _FILE_KEYS, None)
 SYMBOLS = _mapping("SYMBOLS", _SYMBOL_KEYS, None)
 VOCAB = _mapping("VOCAB", _VOCAB_KEYS, ())
@@ -174,7 +177,12 @@ ROOT_FILES: tuple[str, ...] = _seq("ROOT_FILES")
 # SYNTAX 가 "python" 이 아니면 그 계열 검사 9종은 [OK] 가 아니라 [SKIP] 이 된다 —
 # 파이썬 정규식이 다른 언어에서 안 걸리는 것을 "위반 없음"으로 보고하면 그게 무음 통과다.
 LANG: str | None = getattr(_MOD, "LANG", None) if _MOD else None
-_PACK = lang.load(LANG)
+try:
+    _PACK = lang.load(LANG) if LANG is not None else {
+        "EXT": (), "SYNTAX": None, "PATTERNS": {}, "NOT_APPLICABLE": {}, "LINTERS": ()}
+except ValueError as exc:
+    PROFILE_ERRORS.append(f"{PROFILE_FILE}: {exc}")
+    _PACK = {"EXT": (), "SYNTAX": None, "PATTERNS": {}, "NOT_APPLICABLE": {}, "LINTERS": ()}
 
 SOURCE_EXT: tuple[str, ...] = _seq("SOURCE_EXT", tuple(_PACK["EXT"]))
 UI_EXT: tuple[str, ...] = _seq("UI_EXT", ("*.tsx", "*.ts"))
@@ -190,7 +198,11 @@ if _MOD and getattr(_MOD, "PATTERNS", None):
 # 이 프로젝트 형태에 어떤 레이어가 존재하는가. 미선언(None)이면 아무것도 N/A 로
 # 돌리지 않는다 — ARCH 도입 전 프로파일의 동작이 그대로 보존된다.
 ARCH: str | None = getattr(_MOD, "ARCH", None) if _MOD else None
-_ARCH_PACK = arch.load(ARCH)
+try:
+    _ARCH_PACK = arch.load(ARCH)
+except ValueError as exc:
+    PROFILE_ERRORS.append(f"{PROFILE_FILE}: {exc}")
+    _ARCH_PACK = {"NOT_APPLICABLE": {}}
 
 
 def _na_prefixed(entries: dict[str, str], tag: str | None) -> dict[str, str]:
@@ -210,8 +222,8 @@ LINTERS: tuple = _seq("LINTERS", tuple(_PACK["LINTERS"]))
 
 
 def pattern(name: str) -> str:
-    """언어 관용구 정규식. 언어팩이 안 주면 파이썬 기본값이다."""
-    return PATTERNS.get(name) or lang.DEFAULTS["PATTERNS"].get(name, "")
+    """선택한 언어가 선언한 관용구. 미선언은 빈 문자열이다."""
+    return PATTERNS.get(name, "")
 
 
 def syntax_ready() -> bool:
@@ -245,7 +257,7 @@ UI_COPY: dict[str, Any] = dict(getattr(_MOD, "UI_COPY", {})) if _MOD else {}
 
 def layer(name: str) -> str | None:
     """레이어 경로 접두. 선언이 없으면 None — 그 게이트는 [SKIP] 이다."""
-    value = LAYERS.get(name)
+    value = CHECK_PATHS.get(name)
     if not value:
         return None
     return value if value.endswith("/") else value + "/"
@@ -253,7 +265,7 @@ def layer(name: str) -> str | None:
 
 def layer_raw(name: str) -> str | None:
     """접두 슬래시를 붙이지 않은 원문. 파일 하나를 가리키는 레이어(스키마 모듈 등)에 쓴다."""
-    return LAYERS.get(name) or None
+    return CHECK_PATHS.get(name) or None
 
 
 def symbol(name: str) -> str | None:
@@ -280,14 +292,14 @@ def outdated_notice() -> str:
     """
     from kernel import PROFILE_SCHEMA as required
 
-    if _MOD is None or PROFILE_SCHEMA >= required:
+    if _MOD is not None and PROFILE_SCHEMA == required:
         return ""
     template = ROOT / "profiles" / "_template.py"
     names = set(_TEMPLATE_NAME.findall(template.read_text(encoding="utf-8"))) if template.exists() else set()
-    missing = sorted(n for n in names - set(vars(_MOD)) if n not in ("PRESET_SUMMARY", "PRESET_FITS"))
-    return (f"[PROFILE SCHEMA] {PROFILE_FILE} 서식 {PROFILE_SCHEMA} < 커널 {required} — "
+    missing = sorted(n for n in names - set(vars(_MOD) if _MOD else ()) if n not in ("PRESET_SUMMARY", "PRESET_FITS"))
+    return (f"[PROFILE SCHEMA] {PROFILE_FILE} 서식 {PROFILE_SCHEMA} != 커널 {required} — "
             f"채울 수 있는 새 항목: {' '.join(missing) or '없음'}. profiles/_template.py 의 설명을 보고 "
-            f"채운 뒤 PROFILE_SCHEMA = {required} 로 올려라. 안 채운 항목은 [SKIP] 으로 돈다.")
+            f"분류를 그래프로 이전한 뒤 PROFILE_SCHEMA = {required} 로 올려라. 구서식은 실행하지 않는다.")
 
 
 if __name__ == "__main__":

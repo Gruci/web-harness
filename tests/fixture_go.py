@@ -1,7 +1,7 @@
 """tests/fixture_go.py — 비파이썬 프로젝트 픽스처 (Go).
 
 `SOURCE_EXT` 를 갈아끼우면 파이썬이 아닌 레포에서도 게이트가 도는지, 그리고 **파이썬 구문·
-관용구에 묶인 8종이 [OK] 가 아니라 [SKIP] 으로 빠지는지**를 동결한다.
+관용구에 묶인 검사가 [OK] 가 아니라 [TOOL] 로 남는지**를 동결한다.
 
 후자가 이 픽스처의 존재 이유다. `os.getenv` 정규식은 Go 의 `os.Getenv` 에 안 걸린다.
 그걸 "위반 없음"으로 보고하면 검사기가 거짓말을 하는 것이고, 그 상태는 화면상 초록불이다.
@@ -56,7 +56,7 @@ const AccessKey = "{0}"
 '''.format("AKIA" + "IOSFODNN7EXAMPLE")
 
 # 파이썬 관용구 검사가 놓치는 것 — Go 는 os.Getenv 다.
-# 이 파일이 [OK] 를 유발하면 그게 무음 통과이고, [SKIP] 이면 정직한 것이다.
+# 구문 분석 지원 여부와 별개로 선언된 패턴 검사는 이 호출을 탐지해야 한다.
 FILES["utils/env.go"] = '''package utils
 
 import "os"
@@ -73,15 +73,15 @@ func main() {}
 FILES["harness_profile.py"] = '''"""Go 픽스처 프로파일 — 서버 언어가 파이썬이 아닌 경우."""
 
 STAGE = "mature"
+PROFILE_SCHEMA = 3
 
 LANG = "go"              # profiles/lang/go.py — 확장자·관용구·해당없음·린터를 다 가져온다
 ARCH = "headless"        # 웹도 화면도 없다 — 화면·웹 검사 9종이 [N/A] 로 찍힌다
 
-LAYERS = {
-    "read": "db/reads", "write": "db/writes", "db": "db",
-    "web": None, "routes": None,
+CHECK_PATHS = {
+    "routes": None,
     "ui": None, "ui_admin": None, "ui_tokens": None,
-    "tests": "tests", "schema": None, "shared": "utils", "batch": "batches",
+    "tests": "tests", "schema": None,
 }
 FILES = {"settings": "settings.go", "ssl_util": None}
 SYMBOLS = {"db_accessor": None, "db_accessor_module": None,

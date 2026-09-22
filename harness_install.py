@@ -1,29 +1,9 @@
-"""harness_install.py — 하네스를 프로젝트에 끼우는 1회 실행.
+"""harness_install.py — 프로파일 설치와 검사 진단.
 
-새 프로젝트든 기존 레포든 이 한 줄이 시작점이다.
-
-  python -X utf8 harness_install.py              프로파일 생성 + 현재 위반 동결 + 검증
-  python -X utf8 harness_install.py --preset web 스택 프리셋으로 프로파일 생성
-  python -X utf8 harness_install.py --dry-run    무엇이 동결될지만 출력
-  python -X utf8 harness_install.py --prune      이미 고쳐진 동결 행 제거(래칫 수확)
-  python -X utf8 harness_install.py --list       쓸 수 있는 프리셋 목록
-  python -X utf8 harness_install.py --check-update  원류 KERNEL_VERSION 과 대조 — 고지만 한다
-  python -X utf8 harness_install.py --check-agents  Claude·Codex 연결 진단 (읽기 전용)
-  python -X utf8 harness_install.py --upgrade       kernel/ · .claude/hooks/ · profiles/*.py 만 교체
-
-**하는 일 셋.**
-
-1. `harness_profile.py` 가 없으면 프리셋에서 만든다. 커널은 이 파일로만 프로젝트를 안다.
-2. 게이트가 요구하는 동결 파일을 만든다. 없으면 그 게이트가 [SKIP] 으로 죽어 있다.
-3. 현재 위반을 전부 동결하고 초록불에서 출발한다 — 이후로는 신규 위반만 걸린다(래칫).
-
-3번이 있는 이유: 하네스를 끼운 첫 실행이 수백 건을 뱉으면 사람은 게이트를 통째로 끈다.
-그게 하네스가 죽는 실제 경로다. 동결 단위는 (게이트 slug, 파일)이다 — 줄번호로 잡으면
-코드가 한 줄만 밀려도 동결이 풀린다. 동결은 "이 파일은 이 게이트에서 봐준다"는 뜻이지
-"규칙이 없다"가 아니다. 그 파일을 다음에 손볼 때 고치고 행을 지우는 게 정상 경로다.
-
-`harness_baseline.txt` 는 커밋한다 — 세션·머신이 바뀌어도 동결 상태가 공유돼야
-"줄어들기만 한다"는 래칫이 성립한다.
+새 프로젝트는 스택 미정 서식 하나에서 시작한다.
+첫 코드 전에 사용자와 분류 그래프와 언어별 검사 도구를 구성한다.
+설치는 기존 위반을 자동 동결하지 않으며 프로젝트 정본을 삭제하지 않는다.
+기존 파일 단위 baseline은 --prune으로 줄일 수 있다.
 """
 
 from __future__ import annotations
@@ -40,7 +20,7 @@ from pathlib import Path
 
 from kernel import KERNEL_VERSION, UPSTREAM, UPSTREAM_BRANCH, profile, runner
 from kernel.context import ROOT
-from kernel.gates import api_types, placement
+from kernel.gates import api_types
 
 PRESET_DIR = ROOT / "profiles"
 DEFAULT_PRESET = "_template"
@@ -137,7 +117,7 @@ def upgrade() -> int:
                           cwd=ROOT).returncode
 
 # 목록에 보여줄 순서. 흔한 것부터, 빈 서식은 마지막. 여기 없는 프리셋은 뒤에 이름순으로 붙는다.
-PRESET_ORDER = ("web_fastapi_react", "api_fastapi", "batch_python", DEFAULT_PRESET)
+PRESET_ORDER = (DEFAULT_PRESET,)
 
 
 def profile_modules() -> list[str]:
@@ -275,6 +255,8 @@ def install_profile(preset: str) -> bool:
     설정이 아니라 하네스가 자기를 검사하려고 둔 파일이고, 레이어가 전부 비어 있어 그대로 두면
     게이트가 통째로 꺼진 채 초록불이 뜬다. 그래서 자기 프로파일은 '없음'으로 취급해 덮어쓴다.
     """
+    if preset not in profile_modules():
+        raise ValueError(f"사용할 수 없는 프리셋: {preset}")
     target = ROOT / profile.PROFILE_FILE
     if target.exists() and not getattr(profile, "IS_HARNESS_SELF", False):
         print(f"[프로파일] {profile.PROFILE_FILE} 이미 있음 — 건드리지 않는다")
@@ -289,8 +271,7 @@ def install_profile(preset: str) -> bool:
         return False
     shutil.copy2(source, target)
     print(f"[프로파일] {profile.PROFILE_FILE} 생성 (프리셋 {preset})")
-    print("   → 레이어 이름을 실물에 맞추고, 아는 것부터 채워라. "
-          "빈 항목은 조용히 통과하지 않고 [SKIP] 으로 찍힌다.")
+    print("   → 업무 분류를 사용자와 승인하고 언어별 검사 도구를 연결하라.")
     return True
 
 
@@ -298,7 +279,6 @@ def install_profile(preset: str) -> bool:
 # 관찰 기록은 남의 세션 것이라 첫 회고가 거짓 패턴을 읽고, 표면 동결본은 남의 면제 목록이다.
 SHIPPED_TRACE = "harness_trace.jsonl"
 SHIPPED_SURFACE = "harness_surface.txt"
-SHIPPED_DIAGRAMS = "docs/architecture"
 
 
 def reset_shipped_state() -> None:
@@ -312,11 +292,7 @@ def reset_shipped_state() -> None:
         surface.unlink()
         print(f"[동봉 상태] {SHIPPED_SURFACE} 제거 — 하네스 레포 자신의 면제 동결본이었다. "
               f"edit_surface 게이트를 켤 때 이 프로젝트의 표면으로 다시 뜬다")
-    diagrams = ROOT / SHIPPED_DIAGRAMS
-    if diagrams.is_dir():
-        shutil.rmtree(diagrams)
-        print(f"[동봉 상태] {SHIPPED_DIAGRAMS} 제거 — 하네스 자신의 그림이었다. "
-              f"이 프로젝트의 그림은 arch-diagram 스킬이 레이어에서 만든다")
+    # 그림과 그래프 및 스키마는 프로젝트 정본이 섞일 수 있어 자동 삭제하지 않는다.
 
 
 def install_gate_baselines() -> None:
@@ -328,30 +304,10 @@ def install_gate_baselines() -> None:
 
 
 def report_unlisted_layers() -> None:
-    """앱 코드가 들었는데 레이어로 선언되지 않은 최상위 폴더를 알린다.
-
-    레이어 이름은 프로젝트가 정한다. 그래서 설치 시점에 선언과 실물이 어긋나 있으면 여기서
-    한 번 짚어줘야 한다 — 안 그러면 배치 게이트가 첫 편집에서야 막는다.
-    """
-    declared = placement.layer_prefixes()
-    if not declared:
-        print("\n[레이어 확인] 선언된 레이어가 하나도 없다 — 레이어를 요구하는 게이트는 전부 [SKIP] 이다.")
-        return
-    known = {p.rstrip("/") for p in declared}
-    known |= {p.rstrip("/") for p in placement.SELF_PREFIXES}
-    known |= {p.rstrip("/") for p in profile.SCOPE["exclude_all"]}
-    unlisted = [child.name for child in sorted(ROOT.iterdir())
-                if child.is_dir() and child.name not in known
-                and not child.name.startswith((".", "_"))
-                and any("__pycache__" not in p.parts for p in child.rglob("*.py"))]
-    if not unlisted:
-        return
-    print("\n[레이어 확인] 아래 폴더에 앱 코드가 있는데 레이어로 선언돼 있지 않다:")
-    for name in unlisted:
-        print(f"   {name}/")
-    print(f"   현재 선언: {' '.join(declared)}")
-    print("   → 프로파일의 LAYERS 를 실물에 맞추거나, 파일을 선언된 폴더로 옮겨라.")
-    print("   도메인 패키지로 둘 거면 그대로 둔다 (__init__.py 와 동명 정본 MD 를 요구한다).")
+    """분류 정본 구성 상태를 알린다. 기술 검사 경로는 분류를 대신하지 않는다."""
+    graph = ROOT / profile.COMPONENT_GRAPH
+    if not graph.is_file():
+        print(f"\n[분류 필요] {profile.COMPONENT_GRAPH} 없음 — 첫 코드 전에 사용자와 분류를 승인하라.")
 
 
 def _write_baseline(pairs: list[tuple[str, str]]) -> None:
@@ -428,13 +384,20 @@ def main(argv: list[str]) -> int:
         preset = argv[index]
 
     if "--prune" not in args and "--dry-run" not in args:
-        created = install_profile(preset)
+        try:
+            created = install_profile(preset)
+        except ValueError as exc:
+            print(f"[프로파일] {exc}")
+            return 2
         install_gate_baselines()
         if created:
-            print("\n프로파일을 방금 만들었다. 레이어를 채운 뒤 이 스크립트를 한 번 더 돌려라 — "
-                  "지금 동결하면 채우기 전 상태가 얼어붙는다.")
+            print("\n프로파일을 만들었다. 사용자와 스택과 분류 그래프를 정하고 검사 도구를 연결하라.")
             return 0
 
+    if profile.PROFILE_ERRORS:
+        for error in profile.PROFILE_ERRORS:
+            print(f"[PROFILE] {error}")
+        return 2
     report_unlisted_layers()
 
     if "--prune" in args:
@@ -442,21 +405,20 @@ def main(argv: list[str]) -> int:
 
     current = runner.collect_all_violations()
     if "--dry-run" in args:
-        _report(current, "[DRY RUN] 동결 대상")
+        _report(current, "[DRY RUN] 현재 위반 (자동 동결하지 않음)")
         return 0
 
-    _report(current, "[INSTALL] 동결")
-    _write_baseline(current)
+    _report(current, "[INSTALL] 수정이 필요한 위반")
 
-    # 동결이 실제로 먹었는지 확인 — 남으면 파일에 귀속되지 않는 전역 위반이라 사람이 봐야 한다.
+    # 신규 위반을 동결하지 않고 실제 검증 결과를 반환한다.
     print("\n검증 실행:")
-    code = runner.main([])
+    code = runner.main(["--verify"])
     if code == 0:
-        print("\n설치 완료 — 초록불에서 출발한다. 이제부터 신규 위반만 걸린다.")
-        print("harness_baseline.txt 를 커밋하라 — 동결은 세션 간 공유돼야 래칫이 성립한다.")
+        print("\n설치 검증 완료 — 위반을 자동 동결하지 않았다.")
+
     else:
-        print("\n남은 위반은 파일에 귀속되지 않는 전역 검사다 — 동결 키가 없어 직접 고쳐야 한다.")
-        print("대개 문서 쪽이다: 하네스 지도 등재·허브 링크·문서↔코드 대조.")
+        print("\n검증 미완료 — 보고된 분류·검사 설정 또는 코드 위반을 해결하라.")
+
     return code
 
 

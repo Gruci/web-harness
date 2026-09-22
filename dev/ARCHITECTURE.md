@@ -1,103 +1,40 @@
-# dev/ARCHITECTURE.md — 3-레이어 아키텍처 & 함수 명명
+# dev/ARCHITECTURE.md — 컴포넌트 경계와 정책
 
-> 담는 것: 레이어 경계와 의존성 방향, I/O와 로직을 가르는 함수 명명 규칙. 담지 않는 것: 변수·필드 이름 규칙(→ `dev/NAMING.md`)·테이블 설계(→ `dev/DATA_MODEL.md`). 읽는 시점: 새 `.py` 파일이나 함수를 만들기 전, 그리고 어느 레이어에 둘지 갈릴 때.
+> 담는 것: 업무 책임과 기술 구현을 분리하는 설계 원칙. 담지 않는 것: 그래프 승인 절차(→ [COMPONENTS.md](COMPONENTS.md)). 읽는 시점: 새 컴포넌트나 경계를 설계할 때.
 
----
+## 첫 코드의 위치
 
-## 읽기/쓰기 레이어 분리 (필수)
+제품 코드는 승인된 컴포넌트와 역할에 속해야 한다.
+분류가 없으면 먼저 책임과 이름을 사용자에게 제안한다.
+새 세션도 같은 정본을 읽으며 대화 기억만으로 분류를 추정하지 않는다.
+구체적인 경로와 허용 의존 관계는 [컴포넌트 정본](COMPONENTS.md)으로 검증한다.
 
-DB 접근은 **읽기와 쓰기를 디렉토리로 분리**한다.
+## 역할과 의존 관계
 
-| 디렉토리 | 역할 | 함수 prefix |
-|----------|------|-------------|
-| `db/reads/` | **읽기 전용** — SELECT 조회 | `get_*` / `_fetch_*` / `_format_*` |
-| `db/writes/` | **쓰기 전용** — INSERT/UPDATE/DELETE/commit | `save_*` / `upsert_*` / `set_*` / `delete_*` / `refresh_*` / `log_*` |
+| 역할 | 맡는 책임 |
+|---|---|
+| 정책 | 업무 규칙과 불변 조건을 표현한다 |
+| 유스케이스 | 사용자의 목적을 달성하는 절차를 조합한다 |
+| 포트 | 실제로 필요한 외부 능력의 계약을 선언한다 |
+| 조회 | 승인된 범위에서 데이터를 읽는 책임을 맡는다 |
+| 어댑터 | 저장소나 외부 서비스의 기술 구현을 맡는다 |
+| 전달 | 요청이나 작업 실행을 유스케이스에 연결한다 |
 
-- `db/reads/*.py`에 쓰기(INSERT/UPDATE/DELETE/commit) 금지 → 도메인별 `db/writes/*.py`로. **역도 금지** — 순수 SELECT 함수를 writes에 두지 말 것.
-- `db/writes/`가 `db/reads/`를 import(읽기 의존)하는 것은 OK. **역방향(reads → writes) 금지.**
-- 도메인별 파일: `db/writes/{도메인}.py`, `db/reads/{도메인}.py`.
-- **배치·스크립트의 DB 조회도 `db/reads/` 경유** — 파일 내 인라인 SELECT 금지. 배치 전용 쿼리(갭 탐지 등)는 `db/reads/{도메인}_gaps.py` 류 전용 모듈 신설.
+역할을 분리하되 쓰지 않는 역할의 빈 폴더를 만들지 않는다.
+폴더 이름과 언어별 표현은 사용자와 정한 분류에 연결한다.
+선택한 언어의 문법이 달라도 책임과 허용 의존 관계는 그대로 검사한다.
+정책은 구체적인 데이터베이스나 웹 프레임워크에 의존하지 않는다.
+의존 방향은 승인된 그래프의 간선으로 정하며 역방향 import를 자동 허용하지 않는다.
+단순한 함수까지 세 함수로 나누거나 정해진 접두어를 붙이도록 강제하지 않는다.
 
-## 3-레이어 아키텍처 (필수)
+## 결정과 변경 비용
 
-모든 Python 코드는 아래 3계층을 엄격히 분리한다. **계층 간 I/O와 로직을 절대 혼합하지 않는다.**
+언어와 저장소를 정하기 전에 해결할 업무 행동과 보존할 규칙을 적는다.
+현재 기능에 필요하지 않은 기술 선택은 미룰 수 있다.
+기술 선택을 미뤘다는 이유로 첫 코드의 분류까지 미루지는 않는다.
+모든 경계에 인터페이스를 만들지 않고 실제 교체나 격리가 필요한 계약만 선언한다.
+포트를 선언했다면 [테스트 계약](TESTING.md)에 따라 실제 대역 사용을 검증한다.
 
-| 레이어 | 명명 | 역할 |
-|--------|------|------|
-| I/O | `_fetch_*()` | DB/API 조회만, raw rows 그대로 반환, 가공 없음 |
-| Logic | `_format_*()` | 순수 변환, I/O 없음, dict/list 조립만, 단위 테스트 가능 |
-| Public | `get_*()` | fetch + format 조합, 외부 진입점 |
-
-**적용 스코프:**
-- 3함수 분할 = **db/reads 복잡 조회·배치 파이프라인**에 적용. 단순 조회(단일 SQL→dict 변환)는 `get_*` 단일 함수 + "fetch는 with 블록 안, 가공은 블록 밖"(핵심규칙 5)만 지키면 충분.
-- **외부 수집 클라이언트**(스크레이퍼·외부 API)는 fetch+parse 단일 public 함수 허용 — 파서 로직이 커져 단위 테스트가 필요해지면 분리.
-- 어느 경우든 **핵심규칙 5(커넥션 범위)는 전 코드 예외 없음** — 게이트 강제.
-
-### 핵심 규칙
-
-1. **클로저 금지**: 함수 안에 `def` 중첩 금지 → 모듈 수준 추출, 의존성은 파라미터로 전달
-2. **I/O와 로직 분리**: DB 조회 함수 안에 계산/변환 로직 금지
-3. **파이프라인 패턴**: 배치는 `fetch → process → persist` 3단계 독립 함수
-4. **타입 힌트**: 모든 public + `_fetch_*`/`_format_*` 함수에 파라미터 + 반환 타입 필수
-5. **커넥션 범위**: `_fetch_*` 안에서만 열고 dict 변환 후 반환 — `_format_*`까지 열려 있으면 안 됨
-6. **라우트 핸들러는 `def`(동기)** ★: DB 레이어가 동기 `psycopg2`라, 라우트 핸들러를 `async def`로 쓰면 이벤트루프가 쿼리 동안 막혀 **동시 요청이 직렬화**된다. → **동기 `def`로 선언**(FastAPI가 threadpool에서 병렬 실행). `await`가 실제 필요한 핸들러만(`await request.form()`·`await asyncio.to_thread(...)`·SSE 스트림) `async def`.
-
-### 함수 명명 패턴
-
-```python
-# db/reads/*.py
-def _fetch_summary_raw(period: str) -> dict | None:     # I/O: DB 조회만
-def _format_summary_response(raw: dict) -> dict:        # Logic: 순수 변환
-def get_summary_data(period: str = "1M") -> dict:       # Public: 조합
-
-# batches/*.py
-def fetch_all_items(...) -> list:      # 1단계: I/O
-def process_items(...) -> list:        # 2단계: Logic
-def persist_and_notify(...) -> int:    # 3단계: Side Effects
-def run(...):                          # Orchestrator: 3단계 조합
-
-# web/routes/*.py
-def _merge_series(...) -> dict:        # 모듈 수준 헬퍼 (클로저 금지)
-def api_summary(...) -> dict:          # 엔드포인트: 동기 def(rule 6), 헬퍼 조합만
-```
-
-### 올바른 패턴 vs 금지 패턴
-
-```python
-# ✅ 올바른 패턴
-def _fetch_cat_summary_raw(period: str) -> dict | None:
-    with get_db() as conn:
-        rows = conn.execute(...).fetchall()
-    return {"rows": [dict(r) for r in rows]}   # 커넥션 닫힌 후 반환
-
-def _format_cat_summary(raw: dict) -> dict:    # I/O 없음
-    ...
-
-def get_cat_summary(period: str) -> dict:      # 조합만
-    raw = _fetch_cat_summary_raw(period)
-    return {} if raw is None else _format_cat_summary(raw)
-
-# ❌ 금지 패턴 — 커넥션 열린 채로 변환 로직
-def get_cat_summary(period: str):
-    with get_db() as conn:
-        rows = conn.execute(...).fetchall()
-        result = {r["cat"]: r["total"] * 1e-8 for r in rows}   # ← 금지
-    return result
-```
-
-## 정본 예시 파일 (golden exemplar) — 새 파일은 이 파일을 Read 후 모방 (임의 형제 선택 금지)
-
-> **첫 구현이 정본이 된다.** 각 유형의 첫 파일을 만들 때는 이 문서 규칙을 100% 준수해 작성하고, 완성 즉시 아래 표에 등재한다. 이후 같은 유형의 파일은 반드시 정본을 Read 후 모방.
-
-| 만들려는 것 | 모방할 정본 |
-|-------------|-------------|
-| db/reads 단순 조회 모듈 | (첫 구현 시 등재) |
-| db/reads 복잡 조회(3분할) | (첫 구현 시 등재) |
-| db/writes 도메인 모듈 | (첫 구현 시 등재) |
-| web/routes API 모듈 | (첫 구현 시 등재) |
-| 배치 스크립트(3단계) | (첫 구현 시 등재) |
-| 외부 수집 클라이언트 | (첫 구현 시 등재) |
-| React 페이지 | (첫 구현 시 등재) |
-| 차트 소비 컴포넌트 | (첫 구현 시 등재) |
-
-프론트 갈림길(색·fetch·interaction 등)과 공용 헬퍼 목록의 정본은 `dev/CONVENTIONS.md`.
+배포 단위는 컴포넌트 수와 같을 필요가 없다.
+컴포넌트 추가 시 배포 순서와 실패 복구 영향도 계획에 적는다.
+설계 변경은 개발자가 찾아봐야 할 범위와 변경 전파를 줄이는지 평가한다.

@@ -1,0 +1,97 @@
+{
+  "ambiguous": [],
+  "approval": "not-evaluated",
+  "components": [
+    {
+      "category": "business",
+      "excludes": [
+        "결제",
+        "할인율 결정"
+      ],
+      "external": [
+        "typing"
+      ],
+      "id": "orders",
+      "name": "주문 견적",
+      "public": [
+        {
+          "id": "order-quote",
+          "module": "orders.usecases",
+          "symbols": [
+            "quote"
+          ]
+        }
+      ],
+      "responsibility": "상품 가격 조회와 견적 계산 조합",
+      "sources": [
+        {
+          "path": "orders/adapters/memory.py",
+          "role": "adapters",
+          "sha256": "dfedf967877dd9f5c4acba752aa56518dc4401da04c4f8f7a6adf6272ca43e80"
+        },
+        {
+          "path": "orders/ports.py",
+          "role": "ports",
+          "sha256": "633bd8291d8b459bf82db0e0b3dbf248b0695edb27811338c53b7dffceb30574"
+        },
+        {
+          "path": "orders/usecases.py",
+          "role": "usecases",
+          "sha256": "ba36c393a6a25f139f35c852b6dc2a9b9ffa0d993d3ec9ebb70eeba1f5c12c67"
+        }
+      ],
+      "state": "implemented"
+    },
+    {
+      "category": "business",
+      "excludes": [
+        "상품 조회",
+        "저장"
+      ],
+      "external": [],
+      "id": "pricing",
+      "name": "가격 정책",
+      "public": [
+        {
+          "id": "price-total",
+          "module": "pricing.domain",
+          "symbols": [
+            "total_cents"
+          ]
+        }
+      ],
+      "responsibility": "수량 할인 계산",
+      "sources": [
+        {
+          "path": "pricing/domain.py",
+          "role": "domain",
+          "sha256": "626bd12555666bb3b2ff54754c0bf55f50a23eed76a5821a77136169aa4d63af"
+        }
+      ],
+      "state": "implemented"
+    }
+  ],
+  "declared_edges": [
+    {
+      "contract": "price-total",
+      "kind": "import",
+      "source": "orders",
+      "target": "pricing"
+    }
+  ],
+  "dependency_observation": "static-analysis",
+  "dependency_violations": [],
+  "evidence": "working-tree",
+  "graph_digest": "820643b1b14caaf01bee413c02ca50fa7b7a362ad27916ca46823e8fad5a59c8",
+  "observed_edges": [
+    {
+      "contract": "price-total",
+      "kind": "import",
+      "source": "orders",
+      "target": "pricing"
+    }
+  ],
+  "schema": 1,
+  "unclassified": [],
+  "unverified_dependencies": []
+}

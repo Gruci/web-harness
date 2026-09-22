@@ -1,16 +1,10 @@
-exit=1
+exit=2
 [OK]   프로파일 형식
 [OK]   파일 길이 상한
 [OK]   헤더 경로 주석
 [N/A ] 중첩 def(클로저) — go: 클로저가 관용구라 금지가 부적절
 [TOOL] 함수 길이 상한 — go 구문 분석기가 없어 검사 못 함
 [OK]   TYPE_CHECKING↔future annotations 짝
-
-[FAIL] 읽기 레이어의 쓰기 SQL·commit (reads_writes) — 1건
-   - db/reads/board.go:5: 쓰기 SQL — conn.Exec("DELETE FROM board_cache")
-[OK]   읽기 레이어 컬럼 식별자 raw 보간
-[SKIP] 쓰기 레이어 round() 절삭 — 설정에 write 폴더를 안 적었음
-[OK]   배치 직접 SELECT
 [SKIP] 축약 이름 단독 대입 — 설정에 금지할 축약어를 안 적었음
 [SKIP] 축약 접두 식별자 — 설정에 금지할 축약 접두어를 안 적었음
 [N/A ] UI 라벨 금칙어 — headless: 화면 레이어가 없는 아키텍처
@@ -20,12 +14,10 @@ exit=1
 [FAIL] 시크릿 토큰 하드코딩 (secrets) — 1건
    - batches/leak.go:3: 시크릿 토큰 하드코딩 — 설정 모듈 경유로 옮기고, 이미 커밋됐다면 키를 회전하라
 [N/A ] TS any 타입 — headless: 화면 레이어가 없는 아키텍처
-[TOOL] 커넥션 블록 내 가공 — go 구문 분석기가 없어 검사 못 함
 
 [FAIL] 설정 밖 환경변수 조회 (env_access) — 1건
    - utils/env.go:5: settings.go 밖에서 환경변수 조회 — var Token = os.Getenv("TOKEN")
 [N/A ] await 없는 async 핸들러 — headless: 웹 서버가 없는 아키텍처
-[SKIP] 커넥션 접근자 import 단일 경로 — 설정에 db_accessor_module 이름을 안 적었음
 [SKIP] 전역 SSL 패치 호출 위치 — 설정에 ssl_bypass 이름을 안 적었음
 [N/A ] 라우트 에러 응답 형식 — headless: 웹 서버가 없는 아키텍처
 [N/A ] 공용 래퍼 없는 fetch — headless: 화면 레이어가 없는 아키텍처
@@ -37,9 +29,6 @@ exit=1
 [SKIP] 프론트 컴포넌트 테스트 짝 — 화면 소스 없음
 [SKIP] 루트 직속 잡파일 — 설정에 루트 허용 파일을 안 적었음
 [SKIP] 프롬프트 버전 범프 — 설정에 버전 관리 프롬프트 목록을 안 적었음
-
-[FAIL] 앱 코드 배치 (file_placement) — 1건
-   - stray.go: 루트에 앱 코드 금지 — batches/·db/·db/reads/·db/writes/·tests/·utils/ 중 하나로 옮기거나 프로파일 ROOT_FILES 에 등재하라
 [SKIP] 수집·계산 모듈의 행동 테스트 짝 — 설정에 테스트 대상 폴더를 안 적었음
 [SKIP] DDL 저장 타입 잘림 — 설정에 schema 폴더를 안 적었음
 [N/A ] API 응답 배열 필드 옵셔널 — headless: 화면 레이어가 없는 아키텍처
@@ -56,8 +45,16 @@ exit=1
 [SKIP] 에이전트 모델 정책 — 설정에 담당 AI 모델 표를 안 적었음
 [SKIP] 사고 절 승격 상태 — 설정에 사고 기록 문서를 안 적었음
 [OK]   MD 함수 참조 실존
+[OK]   아키텍처 그림 1:1 대조
+[OK]   컴포넌트 그래프 서식
 
-[FAIL] 아키텍처 그림 1:1 대조 (arch_diagram) — 1건
-   - docs/architecture: 아키텍처 그림 없음 — 코드가 자란 프로젝트에 그림이 없는 건 손실이다. arch-diagram 스킬
+[FAIL] 컴포넌트 분류 (component_classification) — 1건
+   - stray.go: unclassified source; needs_decision
+[OK]   그래프 사용자 결정
+[OK]   공개 계약과 의존 방향
+[TOOL] 컴포넌트 구문 분석 — go: component syntax analyzer unavailable
+[SKIP] 기능 지도 대조 — resolve graph decisions first
+[OK]   선언 포트의 실행 계약
+[TOOL] 포트 계약 실행 환경 — port contracts: selected syntax analyzer is unavailable
 
-총 5건 위반.
+필수 검사 미검증 — 완료로 처리할 수 없다.

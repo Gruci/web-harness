@@ -308,15 +308,16 @@ FILES["api_array_baseline.txt"] = "# 픽스처: 동결분 없음\n"
 FILES["harness_profile.py"] = '''"""픽스처 프로젝트 프로파일 — 게이트 전량을 켠다."""
 
 STAGE = "mature"
-PROFILE_SCHEMA = 1
+PROFILE_SCHEMA = 3
+LANG = "python"
+LINTERS = ()  # External process contracts are tested separately from deterministic golden output.
 
 ARCH = "web_layered"      # 화면+서버 풀스택 — 아무것도 N/A 로 돌리지 않는다
 
-LAYERS = {
-    "read": "db/reads", "write": "db/writes", "db": "db",
-    "web": "web", "routes": "web/routes",
+CHECK_PATHS = {
+    "routes": "web/routes",
     "ui": "frontend/src", "ui_admin": "frontend/src/admin", "ui_tokens": None,
-    "tests": "tests", "schema": "db/schema", "shared": "utils", "batch": "batches",
+    "tests": "tests", "schema": "db/schema",
 }
 FILES = {"settings": "settings.py", "ssl_util": "utils/ssl_utils.py"}
 SYMBOLS = {

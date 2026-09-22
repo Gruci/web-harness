@@ -4,7 +4,7 @@
 
 **A guardrail that keeps AI from wrecking your code**
 
-Web development harness v3.8.0
+Web development harness v4.0.0
 
 [한국어](README.md) · [English](README.en.md)
 
@@ -14,7 +14,7 @@ Web development harness v3.8.0
 
 1. Claude Code and Codex use the same development rules and working procedures across sessions.
 2. **Automatic checks** report violations after edits, and configured stop hooks require fixes and verification.
-3. After install, one sentence ("set up the harness") finishes configuration; from then on the checks run without you thinking about them.
+3. Select the language and component classification with the AI before the first code; review new proposals when boundaries change.
 
 ## At a glance
 
@@ -84,7 +84,7 @@ This tool exists to keep stage 2 from ever arriving. It gives you the effect of 
 - You've already **watched consistency collapse** while collaborating with an AI
 - You want "design first, implement after approval" enforced **by a system, not by asking nicely**
 
-It attaches to web services with screens, API-only servers, and batch jobs alike. Languages beyond Python (Go, TypeScript) are supported with a single configuration line.
+It can be configured for web services, API servers, and batch jobs. Source collection and analysis must be connected for the selected language; unsupported checks remain unverified.
 
 ---
 
@@ -124,58 +124,27 @@ That's all there is. Everything below is reference material for when you need it
 
 ---
 
-## harness_profile.py — the only file you'll ever edit
+## Project settings and the component graph
 
-Onboarding generates it automatically, so you don't need to open it at first. Later, when the project structure changes, this one file is all you touch.
-
-Why does it exist? The check logic itself knows nothing about your project. It only knows the **shape** of a rule — "a read-only folder must not modify data" — and this file tells it which folder that is. So porting to another project means swapping this file, never editing the checker.
+Schema 3 connects the selected language and technical check paths.
+A separate graph defines component names, responsibilities, and allowed dependencies.
+Before the first product code, the AI proposes a classification and records the user's actual response.
+Routine edits within approved boundaries do not ask again.
 
 ```python
-# harness_profile.py — language under inspection (one line brings extensions, idioms, tooling)
-LANG = "go"                       # kernel/langs/go.py
-
-# Project shape (one line settles which checks simply do not apply)
-# In a service with no screens, screen checks are "not applicable" — not "misconfigured".
-ARCH = "backend_only"             # web_layered / backend_only / headless
-
-# Layer path definitions
-# Keys are roles the checker knows; values are this project's real paths.
-# A value of None puts every check that uses that role into [SKIP].
-
-LAYERS: dict[str, str | None] = {
-    "read":      "db/reads",      # Read-only. The write-SQL check watches this
-    "write":     "db/writes",     # Mutations only
-    "db":        "db",            # Watched by the connection-scope check
-    "web":       "api",           # Example of changing the default "web"
-    "routes":    "api/routes",    # Update alongside the parent path
-    "ui":        "frontend/src",  # None rests the seven screen-related checks
-    "tests":     "tests",
-    "schema":    "db/schema",
-    "shared":    "utils",
-    "batch":     "batches",
-}
+PROFILE_SCHEMA = 3
+LANG = None
+COMPONENT_GRAPH = "docs/architecture/components.json"
+CHECK_PATHS = {"ui": None, "tests": None}
 ```
 
-If a folder name differs from reality, just change it. When configuration and actual structure disagree, the placement check catches it — there is no path where a renamed folder leaves checks silently idling.
+An undecided language does not select Python or Go automatically.
+Connect the chosen language's checks before writing product code.
+Follow the [component contract](dev/COMPONENTS.md) and [assembly workflow](dev/workflows/harness-assembly.md).
+The [working example](examples/harness-reference/README.md) demonstrates one stack without making it the project default.
 
-Principal configuration entries:
-
-| Entry | Purpose |
-|:--|:--|
-| `STAGE` | Project maturity: `greenfield` / `growing` / `mature` |
-| `LANG` | Server language. Extensions, idioms, and external tooling follow from it |
-| `ARCH` | Project shape. Checks that cannot hold in a project without screens or a web server report `[N/A]` |
-| `LAYERS` | Real path per role. Unset roles rest their checks |
-| `FILES` · `SYMBOLS` | Framework-specific names such as the settings module and connection helper |
-| `SCOPE` | Paths excluded from checking: vendored copies, build output, fixtures |
-| `VOCAB` | Forbidden abbreviations and internal terms that must not reach the screen |
-| `ALLOWLIST` | Permanent file-level exemptions |
-| `DOC_SYNC` | Pairs of values duplicated between documents and code, kept in sync |
-| `AGENT_MODEL_POLICY` | Pinned AI model per role |
-| `MAINTENANCE` | Thresholds that trigger routine reviews |
-| `LOCAL_GATES` | Checks specific to this repository |
-
----
+Waiting for a user decision is not completion.
+Stop allows a normal waiting turn after presenting the proposal; independent work can continue.
 
 ## How daily development flows
 
@@ -202,16 +171,16 @@ A design containing `TBD`, "implement later", or "similar to the above" is not a
 ## FAQ
 
 **Does it work outside Python?**
-Yes. Write `LANG = "go"` and the extensions, idioms, the list of rules that don't hold in that language, and the external tools to delegate to all follow. `python`, `go`, and `typescript` ship built in; any other language needs a `profiles/lang/<name>.py` declaring four items (`EXT`·`PATTERNS`·`NOT_APPLICABLE`·`LINTERS`). Checks that need real parsing are delegated to that language's standard tools — `go vet`·`staticcheck` for Go, `ruff` for Python, `tsc`·`eslint` for TypeScript. A missing tool shows as `[TOOL]` with its install command, never as a pass.
+Language packs connect source patterns and external tools. Selecting a pack does not imply that every component analysis is supported. Verify syntax analysis and port contract execution; unsupported checks report `[TOOL]`, and completion verification does not treat them as success.
 
 **Can I install before choosing a stack?**
-Yes. Onboarding asks about the shape of what you're building, not technology names. Choose "undecided" and the most common configuration is installed, with checks for unused areas resting.
+Yes. Onboarding asks about the shape of what you're building, not technology names. An undecided stack stays undecided until you select it and approve the component classification before the first code.
 
 **My service has no screens, yet screen checks keep showing "configuration incomplete".**
 Declare `ARCH = "backend_only"` (server only) or `ARCH = "headless"` (no web, no screens). Those checks then report `[N/A]` (nothing to configure in this project shape) instead of `[SKIP]` (configuration left empty). What was lost and what never existed stay distinguishable.
 
 **What if the project's nature changes after install?**
-Edit the matching entry in `harness_profile.py`. Adding screens to a project that started without them means switching `ARCH` to `web_layered` and filling in `LAYERS["ui"]`, after which the seven screen-related checks begin collecting targets.
+Edit the matching entry in `harness_profile.py`. Adding screens to a project that started without them means switching `ARCH` to `web_layered` and filling in `CHECK_PATHS["ui"]`, after which the seven screen-related checks begin collecting targets.
 
 **Can I turn off a check that doesn't fit my project?**
 Empty its configuration entry and it moves to `[SKIP]`. The resting state is printed with its reason on every run, though — no setting hides that, on purpose.
@@ -263,7 +232,7 @@ From here on is how it works under the hood. None of it is required to use the t
 | **Stack-agnostic** | The decision logic knows nothing about the project. Project-specific values live in one configuration file |
 | **Unverified is reported as unverified** | A check that can't run due to language or configuration prints `[SKIP]` with a reason, never a pass |
 
-### The six check grades
+### Check results and completion
 
 Splitting "couldn't run" into three distinct reasons is the core of this tool — because what you should do differs for each.
 
@@ -272,9 +241,10 @@ Splitting "couldn't run" into three distinct reasons is the core of this tool �
 | `[OK]` | Ran, no violations | — | Allowed |
 | `[SKIP]` | Didn't run — configuration missing | Fill in the config to activate | Allowed |
 | `[N/A]` | The rule doesn't hold in this language or project shape | **None — this is not a loss** | Allowed |
-| `[TOOL]` | Couldn't run — external tool missing | Install the tool to activate | Allowed |
+| `[TOOL]` | Required tooling or analysis could not run | Connect checks | --verify exit code 2 |
 | `[FAIL]` | Violation detected | Fix it | Blocked |
 | `[REPORT]` | Soft signal, false positives possible | Judge for yourself | Allowed |
+| `[DECISION]` | Classification needs a user decision | Answer the proposal | Exit code 3, normal waiting |
 
 > **`[SKIP]` is not a pass.** A previous generation of tooling treated it as one — and a single mismatched folder name left eight checks idle while everything reported green.
 
@@ -291,11 +261,11 @@ Blocking on an inference leaves no way out when the inference is wrong. That hap
 
 ### What gets caught
 
-Forty-eight checks run on every file save. The full list and rationale live in `dev/HARNESS.md`. Representative examples:
+Save checks follow the selected source extensions; final checks also include untracked sources. The full list and rationale live in `dev/HARNESS.md`. Representative examples:
 
 | Caught | Why, and the fix |
 |:--|:--|
-| Data-modifying SQL in the read-only layer | Layer responsibility violation. Move mutations to the write layer |
+| Unclassified product code | Propose its component and role to the user |
 | Hardcoded colors in screen code (`#ff8800`) | Route through the canonical color file or CSS variables |
 | Fixed pixel widths (`width: 420px`) | Breaks mobile. Use `max-width`, `%`, `clamp` |
 | A file over 400 lines | Lost single responsibility. Split by feature |
@@ -303,7 +273,6 @@ Forty-eight checks run on every file save. The full list and rationale live in `
 | A documented file path that doesn't exist | Clean up references left after deletes and renames |
 | Missing type hints on public functions | Specify the module boundary |
 | Agent definition disagreeing with the model policy table | Keeps model assignment aligned with policy |
-| Column names interpolated into read-layer SQL as strings | If user input leaks in, that's SQL injection. Route through a whitelist helper |
 | A single function over 80 lines | The axis the file limit can't see — functions have single responsibility too |
 | Frontend logic or components without a test twin | Type checks and builds can't catch wrong values |
 | New screen copy using internal jargon or slang | Terms outside the denylist get an AI copy review at session end |
@@ -316,51 +285,20 @@ Checks run at three moments:
 | Session exit attempt | Everything | Exit blocked |
 | Manual run (`python -X utf8 -m kernel.runner`) | Everything | Exit code 1 |
 
-### Project layout
+### Project structure
 
-```
-project-root/
-├── harness_profile.py      # Canonical per-project configuration (folders, vocabulary, exemptions)
-├── harness_install.py      # Installer and legacy-violation registration
-├── CLAUDE.md               # AI behavior rules, auto-loaded each session
-├── PROJECT.md              # Service domain, vocabulary, layer structure
-├── dev/                    # Server-side rules — DEVGUIDE.md hub, HARNESS.md harness map
-├── design/                 # Screen design rules — DESIGN_GUIDE.md hub
-├── docs/                   # Deliverables — BACKLOG.md backlog, task documents; active tasks live on the board below
-├── workboard/              # Task board (agent-neutral; only README tracked, task files untracked)
-├── worktrees/              # Per-task isolated checkouts (untracked; git worktree list is the registry)
-├── kernel/                 # Check engine. Knows nothing about the project
-│   ├── langs/              # Language packs — per-language declarations
-│   └── archs/              # Architecture packs — per-project-shape declarations
-├── profiles/               # Configuration presets per project type
-├── harness_gates/          # Repository-specific checks (optional)
-├── tests/                  # The checker's own regression protection
-└── .claude/                # Hooks, agents, skills, session settings
-```
+The [harness guide](dev/HARNESS.md) describes runtime boundaries and check contracts.
+The [component contract](dev/COMPONENTS.md) and generated feature map describe the product.
+Observed dependencies do not automatically become allowed dependencies.
 
-The hierarchy is simple: hooks (automatic) call the check engine (`kernel/`), the engine knows only the **shape** of each rule, and `harness_profile.py` supplies the real folders and names. "No write SQL in the read-only layer" lives in `kernel/`; where that layer actually is, the configuration decides.
+### Project starting template
 
-### Project-type presets
-
-The four types offered at install. Only checks matching the type are activated.
-
-| Type | For | Preset |
-|:--|:--|:--|
-| Screen-based service | Things used in a browser — logins, dashboards | `web_fastapi_react` |
-| API-only service | A backend exchanging data with no screens | `api_fastapi` |
-| Batch / automation | Collection, aggregation, reports on a schedule | `batch_python` |
-| Undecided | Pre-decision. Installs the common configuration; unused checks rest automatically | `web_fastapi_react` |
-
-Measured on a Go project (regression fixture ships in the repository at `tests/fixtures/goproj`):
-
-| Category | Count |
-|:--|:--:|
-| Actually performed | 16 |
-| `[N/A]` — rule does not hold in this language or project shape | 11 |
-| `[TOOL]` — activates once tooling is installed | 5 |
-| `[SKIP]` — configuration incomplete | 16 |
-
-Installation state can be inspected with `python -X utf8 harness_install.py --doctor`.
+The only shipped preset is `_template`, with no selected product stack.
+The AI proposes the language and component classification, then connects the selected checks.
+Development continues autonomously within approved boundaries.
+Only new classifications or boundaries require a new proposal.
+Notifications are ordinary AI conversation; no host-specific notification API is required.
+Local decision records check consistency with the proposal, not user authentication.
 
 ### Manual installation
 
@@ -368,9 +306,9 @@ To install without going through a session:
 
 ```bash
 python -X utf8 harness_install.py --list                      # List presets
-python -X utf8 harness_install.py --preset web_fastapi_react  # Generate configuration
+python -X utf8 harness_install.py --preset _template  # Generate configuration
 # Adjust folder names in harness_profile.py to the real structure, then
-python -X utf8 harness_install.py                             # Register legacy violations and verify
+python -X utf8 harness_install.py                             # Verify configuration and code
 python -X utf8 setup_global_permissions.py                    # Merge global permissions
 ```
 
@@ -378,19 +316,15 @@ Prerequisites: a Git repository (required — targets are collected via `git ls-
 
 ### Adopting on an existing project
 
-Legacy code can flood the first run with violations. Left alone, that pressure leads to disabling checks — so the installer **pre-registers violations that existed at adoption time** as exemptions.
-
-| Target | Handling |
-|:--|:--|
-| Violations that existed at adoption | Registered per (check, file) and excluded |
-| A registered file gets edited later | Fix the violation and remove the registration |
-| Newly created files | Full checks, no exceptions |
-
-The registration list only shrinks. Cleanup:
+Schema 2 is not executed.
+Review existing responsibilities with the user and migrate them to a schema 3 component graph.
+Installation does not delete product code or graph contracts and does not freeze current violations automatically.
+Legacy baselines work per check and file, so they can hide new violations in the same file.
+Graph checks cannot be exempted by that baseline.
 
 ```bash
-python -X utf8 harness_install.py --dry-run   # Preview registrations
-python -X utf8 harness_install.py --prune     # Clear resolved entries
+python -X utf8 harness_install.py --dry-run
+python -X utf8 harness_install.py --prune
 ```
 
 ### How check rules grow
@@ -474,6 +408,7 @@ python -X utf8 -m kernel.diagram deliver  architecture docs/architecture/<name>.
 
 | Version | Changes |
 |:--|:--|
+| **v4.0.0** | Schema 3 component graphs, user decision records, stack-selected assembly, and reliable check outcomes. |
 | **v3.8.0** | Root holds only tool-convention files, and the harness map is checked both ways. Hub documents moved into their home directories — DEVGUIDE and HARNESS to `dev/`, DESIGN_GUIDE to `design/`, BACKLOG to `docs/`; check 28 now also catches map rows whose real file is gone; nested `def` gained a reasoned escape comment. |
 | **v3.7.0** | Task board moved out of git into root `workboard/` — one file per task, edit-time overlap warnings (Claude hook + Codex entrypoint sharing one kernel judgment), worktrees relocated to root `worktrees/` for agent neutrality, EDITING.md renamed to BACKLOG.md. |
 | **v3.6.0** | Less check cost and noise. Full check 21 s → 3 s, six frontend checks delegated to ESLint, AI copy review downgraded to a warning, CLAUDE.md deduplicated. |

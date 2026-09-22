@@ -4,7 +4,7 @@
 로 실존·행 범위·커버리지·영수증·revision 을 보고, 스키마·배치·증거의 정본 판정은 엔진
 validate 에 위임한다. node 가 없으면 위임분만 [TOOL] 이고 자체 판정은 그대로 돈다.
 
-  자체 판정   external 아닌 노드마다 sources · 레이어·패키지 커버리지 · 경로·행 실존 · 영수증 해시 · revision 실존
+  자체 판정   external 아닌 노드마다 sources · 구현 컴포넌트 커버리지 · 경로·행 실존 · 영수증 해시 · revision 실존
   REPORT      revision 이후 원류가 바뀐 노드 — 재검토 신호. 오탐 여지가 있어 합산하지 않는다
   엔진 위임   validate --repo-root 의 diagnostics[] → FAIL, node 없음 → TOOL.
               영수증 해시가 현재 정본과 같으면 부르지 않는다 — deliver 가 이미 통과시킨 정본이다
@@ -17,9 +17,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from kernel import diagram, profile
+from kernel import component_graph, diagram, profile
 from kernel.context import READ_ENC, ROOT, tracked
-from kernel.gates import placement
 
 Skip = tuple[str, str]
 Section = tuple[str, str, list[str], "Skip | None"]
@@ -35,9 +34,16 @@ def diagrams() -> list[Path]:
 
 
 def expected_nodes() -> tuple[str, ...]:
-    """디스크에 실존하는 레이어 경로와 도메인 패키지 — architecture 가 전부 그려야 하는 것."""
-    layers = [p for p in placement.layer_prefixes() if (ROOT / p).exists()]
-    return tuple(sorted(set(layers) | set(placement.domain_prefixes())))
+    """Implemented graph components need source coverage; planned nodes do not."""
+    graph_path = ROOT / profile.COMPONENT_GRAPH
+    if not graph_path.is_file():
+        return ()
+    try:
+        graph = component_graph.load(ROOT, profile.COMPONENT_GRAPH)
+    except (OSError, ValueError):
+        return ()  # graph_schema reports malformed or unreadable canonical graphs.
+    return tuple(sorted({"" if item["root"] == "." else item["root"].rstrip("/") + "/"
+                         for item in graph["components"] if item["state"] == "implemented"}))
 
 
 def _git_ok(*args: str) -> bool:
@@ -124,7 +130,7 @@ def _check_one(source: Path) -> tuple[list[str], list[str]]:
     if kind == "architecture":
         for prefix in expected_nodes():
             if not any(path.startswith(prefix) for path in covered):
-                hard.append(f"{rel}: {prefix} 를 가리키는 노드 없음 — 레이어·도메인 패키지는 전부 그린다")
+                hard.append(f"{rel}: {prefix} 를 가리키는 노드 없음 — 구현된 컴포넌트의 실제 소스 근거가 필요하다")
     hard += _receipt_lines(rel, source)
     return hard, soft
 
@@ -157,11 +163,9 @@ def _receipt_lines(rel: str, source: Path) -> list[str]:
 
 
 def check_arch_diagram() -> tuple[list[str], list[str]]:
-    """(강제 위반, REPORT). 그림이 없는 growing 이상 프로젝트는 그 자체가 위반이다."""
+    """Validate explicit renderer artifacts; the graph gate owns required feature maps."""
     found = diagrams()
     if not found:
-        if expected_nodes() and profile.STAGE != "greenfield":
-            return [f"{diagram.DIAGRAM_DIR}: 아키텍처 그림 없음 — 코드가 자란 프로젝트에 그림이 없는 건 손실이다. arch-diagram 스킬"], []
         return [], []
     hard: list[str] = []
     soft: list[str] = []

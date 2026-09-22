@@ -1,4 +1,4 @@
-exit=1
+exit=2
 [REPORT] DEVGUIDE.md: ⑬e 날짜 태그 6개 — 성분 D 의심(경위는 dev/LESSONS.md 로)
 [OK]   프로파일 형식
 
@@ -16,18 +16,6 @@ exit=1
 
 [FAIL] TYPE_CHECKING↔future annotations 짝 (type_checking_future) — 1건
    - utils/tc_future.py: TYPE_CHECKING 블록이 있는데 `from __future__ import annotations` 가 없다 — 3.11 은 어노테이션을 즉시 평가해 NameError
-
-[FAIL] 읽기 레이어의 쓰기 SQL·commit (reads_writes) — 1건
-   - db/reads/bad_write.py:5: 쓰기 SQL — conn.execute("DELETE FROM cache")
-
-[FAIL] 읽기 레이어 컬럼 식별자 raw 보간 (reads_col_interp) — 1건
-   - db/reads/col_interp.py:5: 컬럼 식별자 raw 보간 — 바인딩 불가 자리라 새면 SQLi 다. 화이트리스트 헬퍼(quote_col 류) 경유, 헬퍼 정의 파일은 ALLOWLIST['sql_ident'] 등재 — sql = f'SELECT "{column}" FROM metric'
-
-[FAIL] 쓰기 레이어 round() 절삭 (writes_round) — 1건
-   - db/writes/loader.py:5: 적재 값 round() 절삭 — 저장은 원 정밀도, 반올림은 표시 레이어에서 — conn.execute("INSERT INTO metric VALUES (?)", (round(value, 
-
-[FAIL] 배치 직접 SELECT (batch_select) — 1건
-   - batches/report.py: 배치 안 직접 SELECT — 조회는 db/reads/ 경유
 
 [FAIL] 축약 이름 단독 대입 (abbrev_names) — 1건
    - utils/abbrev.py:3: 축약어 변수 net — net = 0
@@ -58,17 +46,9 @@ exit=1
    - batches/leak.py:3: 시크릿 토큰 하드코딩 — 설정 모듈 경유로 옮기고, 이미 커밋됐다면 키를 회전하라
 [TOOL] TS any 타입 — frontend/node_modules/.bin/eslint 없음 — 설치: npm i -D eslint @typescript-eslint/parser typescript
 
-[FAIL] 커넥션 블록 내 가공 (conn_processing) — 1건
-   - db/conn_loop.py:5: 커넥션 블록 내 중첩 루프 집계 — fetch 후 블록 밖에서 가공하라
-
 [FAIL] 설정 밖 환경변수 조회 (env_access) — 1건
    - utils/env.py:4: settings.py 밖에서 환경변수 조회 — TOKEN = os.getenv("TOKEN")
-
-[FAIL] await 없는 async 핸들러 (web_async) — 1건
-   - web/handlers.py:4: await 없는 async def 'ping' — 동기 def 로
-
-[FAIL] 커넥션 접근자 import 단일 경로 (accessor_import) — 1건
-   - db/reads/core_import.py:2: get_db 를 db.connection 밖에서 import — from db.core import get_db
+[OK]   await 없는 async 핸들러
 
 [FAIL] 전역 SSL 패치 호출 위치 (ssl_bypass) — 1건
    - web/patch.py:4: 전역 SSL 패치를 진입점 밖에서 호출 — bypass_ssl_verification()
@@ -87,13 +67,10 @@ exit=1
 [FAIL] 프론트 컴포넌트 테스트 짝 (ui_component_tests) — 1건
    - frontend/src/Label.tsx: 대응 렌더 테스트 없음 — Label.test.tsx 를 같은 자리에 작성
 
-[FAIL] 루트 직속 잡파일 (root_litter) — 1건
+[FAIL] 루트 직속 잡파일 (root_litter) — 2건
    - notes_dump.txt: 루트 직속 파일 금지 — 읽는 코드의 패키지 안에 두고, 루트가 맞으면 사유와 함께 프로파일 ROOT_FILES 에 등재하라
+   - unclassified.py: 루트 직속 파일 금지 — 읽는 코드의 패키지 안에 두고, 루트가 맞으면 사유와 함께 프로파일 ROOT_FILES 에 등재하라
 [SKIP] 프롬프트 버전 범프 — 설정에 버전 관리 프롬프트 목록을 안 적었음
-
-[FAIL] 앱 코드 배치 (file_placement) — 2건
-   - kofia/: 도메인 패키지에 __init__.py 없음 — 생성하라
-   - kofia/: 도메인 정본 MD 없음 — kofia/KOFIA.md 를 만들고 허브에서 링크하라 (고아 MD 게이트가 도달성을 본다)
 
 [FAIL] 수집·계산 모듈의 행동 테스트 짝 (test_pairing) — 1건
    - kofia/collect.py: 대응 행동 테스트 없음 — tests/test_collect.py 작성 또는 사유와 함께 test_pairing_baseline.txt 등재
@@ -142,7 +119,7 @@ exit=1
    - docs/architecture/app.architecture.json: 노드 reads → db/reads/bad_write.py 행 99 없음 (파일은 5줄)
    - docs/architecture/app.architecture.json: 노드 gone → utils/gone.py 실존하지 않음 — 이름을 바꿨으면 그림도 고친다
    - docs/architecture/app.architecture.json: 노드 orphan 에 sources 없음 — 코드 어디인지 적어야 그림이다
-   - docs/architecture/app.architecture.json: utils/ 를 가리키는 노드 없음 — 레이어·도메인 패키지는 전부 그린다
+   - docs/architecture/app.architecture.json: utils/ 를 가리키는 노드 없음 — 구현된 컴포넌트의 실제 소스 근거가 필요하다
    - docs/architecture/app.architecture.json: 영수증 없음 — `python -X utf8 -m kernel.diagram deliver` 로 렌더한다
 [TOOL] 그림 엔진 진단(docs/architecture/app.architecture.json) — node 없음 — node 를 설치하면 켜진다
 
@@ -152,5 +129,19 @@ exit=1
 [FAIL] 문서↔코드 대조(DEVGUIDE.md↔settings.py) (doc_sync:DEVGUIDE.md) — 2건
    - settings.py 가 읽는 'ALPHA_KEY' 가 DEVGUIDE.md 목록에 없음
    - DEVGUIDE.md 의 'BETA_KEY' 를 settings.py 가 읽지 않음(타 모듈 로드 가능 — 확인)
+[OK]   컴포넌트 그래프 서식
 
-총 61건 위반.
+[FAIL] 컴포넌트 분류 (component_classification) — 1건
+   - unclassified.py: unclassified source; needs_decision
+[OK]   그래프 사용자 결정
+
+[FAIL] 공개 계약과 의존 방향 (component_dependencies) — 3건
+   - utils/env.py:2: external dependency os is not allowed for policy
+   - utils/tc_future.py:5: external dependency pathlib is not allowed for policy
+   - web/patch.py:2: private module bypass utils.ssl_utils
+[TOOL] 컴포넌트 구문 분석 — db/reads/core_import.py:2: unresolved local import db.core; frontend/src/Consumer.test.tsx: Python analyzer cannot inspect this source; frontend/src/Consumer.tsx: Python analyzer cannot inspect this source; frontend/src/Fixed.test.tsx: Python analyzer cannot inspect this source; frontend/src/Fixed.tsx: Python analyzer cannot inspect this source; frontend/src/HashNav.test.tsx: Python analyzer cannot inspect this source; frontend/src/HashNav.tsx: Python analyzer cannot inspect this source; frontend/src/Hex.test.tsx: Python analyzer cannot inspect this source; frontend/src/Hex.tsx: Python analyzer cannot inspect this source; frontend/src/Label.tsx: Python analyzer cannot inspect this source; frontend/src/RawFetch.test.tsx: Python analyzer cannot inspect this source; frontend/src/RawFetch.tsx: Python analyzer cannot inspect this source; frontend/src/Storage.test.tsx: Python analyzer cannot inspect this source; frontend/src/Storage.tsx: Python analyzer cannot inspect this source; frontend/src/anyts.ts: Python analyzer cannot inspect this source; frontend/src/calcShare.ts: Python analyzer cannot inspect this source; frontend/src/platform.test.ts: Python analyzer cannot inspect this source; frontend/src/platform.ts: Python analyzer cannot inspect this source; frontend/src/types/api.ts: Python analyzer cannot inspect this source; unclassified.py: dependency owner unresolved
+[SKIP] 기능 지도 대조 — resolve graph decisions first
+[OK]   선언 포트의 실행 계약
+[OK]   포트 계약 실행 환경
+
+필수 검사 미검증 — 완료로 처리할 수 없다.

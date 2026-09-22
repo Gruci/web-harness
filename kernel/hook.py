@@ -8,12 +8,20 @@ from __future__ import annotations
 
 import argparse
 import codecs
+import fnmatch
 import json
 import subprocess
 import sys
 from pathlib import Path
 
-SOURCE_SUFFIXES = (".py", ".ts", ".tsx", ".md")
+def checkable(path: Path) -> bool:
+    """Use the same configured source patterns as full and save checks."""
+    from kernel import profile
+
+    return path.suffix in (".md", ".json") or any(
+        fnmatch.fnmatchcase(path.as_posix(), pattern)
+        for pattern in (*profile.SOURCE_EXT, *profile.UI_EXT)
+    )
 
 
 def read_payload() -> dict[str, object]:
@@ -79,7 +87,7 @@ def untracked_paths(root: Path) -> list[Path]:
     result = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "-z"],
                             cwd=root, capture_output=True, check=True, timeout=10)
     return [root / name for name in result.stdout.decode("utf-8").split("\0")
-            if name and Path(name).suffix in SOURCE_SUFFIXES
+            if name and checkable(Path(name))
             and (Path(name).suffix == ".md" or not is_harness_own(name))]
 
 
@@ -140,13 +148,14 @@ def run_checks(root: Path, paths: list[Path], event: str, sid: str) -> int:
     """Run file checks plus the Stop full gate, preserving failure severity."""
     jobs: list[list[str]] = []
     code = 0
+    decision_messages: list[str] = []
     for path in paths:
         legacy = check_file(root, path)
         if legacy:
             print(legacy, file=sys.stderr)
             record_result(root, event, sid, legacy)
             code = 2
-        elif path.is_file() and path.suffix in SOURCE_SUFFIXES:
+        elif path.is_file() and checkable(path):
             jobs.append(["--file", str(path)])
     if event == "Stop":
         jobs.append([])
@@ -165,13 +174,35 @@ def run_checks(root: Path, paths: list[Path], event: str, sid: str) -> int:
             continue
         if result.returncode == 0:
             continue
+        decisions = [line.strip().removeprefix("- ") for line in result.stdout.splitlines()
+                     if "needs_decision" in line]
+        decision_messages.extend(decisions)
+        if result.returncode == 3:
+            continue
         failure = "[FAIL]" in result.stdout
         message = "게이트 위반 — 수정 후 재검증하라." if failure else "검사 불능 — 검사기 자체를 점검하라."
         print(message, file=sys.stderr)
         print(result.stdout + result.stderr, file=sys.stderr)
         record_result(root, event, sid, result.stdout, "" if failure else message)
         code = max(code, 2 if failure or event == "Stop" else 1)
+    from kernel import graph_notifications
+    for notice in graph_notifications.report(root, decision_messages, sid):
+        print("[DECISION] " + json.dumps(notice, ensure_ascii=False), file=sys.stderr)
     return code
+
+
+def refresh_projection(root: Path) -> None:
+    """The hook processor regenerates maps; validation gates remain read-only."""
+    from kernel import component_graph, feature_map, graph_workflow
+
+    if not (root / component_graph.GRAPH_PATH).exists():
+        return
+    try:
+        graph = component_graph.load(root)
+    except (OSError, ValueError):
+        return  # The runner reports the malformed canonical document.
+    if not graph_workflow.check_approval(root, graph):
+        feature_map.generate(root)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -205,6 +236,7 @@ def main(argv: list[str] | None = None) -> int:
             return result.returncode
         sys.path.insert(0, str(root))  # Direct script launch starts with kernel/ on sys.path.
         paths = untracked_paths(root) if args.event == "Stop" else edited_paths(payload, cwd)
+        refresh_projection(root)
         code = run_checks(root, paths, args.event, sid)
         if args.event == "PostToolUse":
             warned = board_overlaps(root, paths, sid)

@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "revision": 1,
+  "categories": [{"id": "business", "name": "업무", "description": "가격 정책과 주문 견적", "roles": ["domain", "usecases", "ports", "adapters"]}],
+  "components": [
+    {"id": "pricing", "name": "가격 정책", "category": "business", "responsibility": "수량 할인 계산", "excludes": ["상품 조회", "저장"], "root": "pricing", "roles": {"domain": ["*.py"]}, "public": [{"id": "price-total", "module": "pricing.domain", "symbols": ["total_cents"]}], "state": "implemented", "external": []},
+    {"id": "orders", "name": "주문 견적", "category": "business", "responsibility": "상품 가격 조회와 견적 계산 조합", "excludes": ["결제", "할인율 결정"], "root": "orders", "roles": {"usecases": ["usecases.py"], "ports": ["ports.py"], "adapters": ["adapters/*.py"]}, "public": [{"id": "order-quote", "module": "orders.usecases", "symbols": ["quote"]}], "state": "implemented", "external": ["typing"], "ports": [{"module": "orders.ports", "symbol": "Catalog", "fake_module": "tests.test_quote", "fake_symbol": "FakeCatalog", "test_module": "tests.test_quote"}]}
+  ],
+  "edges": [{"source": "orders", "target": "pricing", "contract": "price-total", "kind": "import"}],
+  "technology": {"sources": ["**/*.py"], "syntax": "python", "exclude": [{"path": "tests", "reason": "행동과 포트 계약 검증"}, {"path": "kernel", "reason": "하네스 검사기"}, {"path": "harness_profile.py", "reason": "하네스 스택 설정"}]},
+  "role_dependencies": {"domain": ["domain"], "ports": ["ports"], "usecases": ["domain", "ports"], "adapters": ["ports"]}
+}

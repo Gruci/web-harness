@@ -38,12 +38,40 @@ def write_long_file() -> None:
 
 
 def write_all(dest: Path, files: dict[str, str]) -> None:
+    allowed = {DEST.resolve(), DEST_GO.resolve(), (DEST_UILINT / "src").resolve()}
+    if dest.resolve() not in allowed:
+        raise ValueError(f"Refusing fixture replacement outside explicit targets: {dest}")
     if dest.exists():
         shutil.rmtree(dest)
     for rel, body in files.items():
         path = dest / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(body, encoding="utf-8")
+
+
+def component_graph(syntax: str) -> dict:
+    """Intentional ownership and dependency errors, independent of profile migration."""
+    patterns = ["db/**/*.go", "batches/**/*.go", "utils/**/*.go"] if syntax == "go" else [
+        "db/**/*.py", "web/**/*.py", "batches/**/*.py", "kofia/**/*.py", "settings.py", "batch_runner.py",
+        "frontend/**/*.ts", "frontend/**/*.tsx"]
+    components = [{"id": "application", "name": "Application fixture", "category": "fixture",
+                   "responsibility": "Exercise classified adapter code", "excludes": ["Domain policy"],
+                   "root": ".", "roles": {"adapters": patterns}, "public": [],
+                   "state": "implemented", "external": ["os"]}]
+    if syntax == "python":
+        components.append({"id": "policy", "name": "Policy fixture", "category": "fixture",
+                           "responsibility": "Pure policy", "excludes": ["Environment access"],
+                           "root": "utils", "roles": {"domain": ["**/*.py"]}, "public": [],
+                           "state": "implemented", "external": ["typing"]})
+    return {"schema": 1, "revision": 1,
+            "categories": [{"id": "fixture", "name": "Fixture", "description": "Gate regression evidence",
+                            "roles": ["domain", "adapters"]}],
+            "components": components, "edges": [],
+            "technology": {"sources": ["**/*.go"] if syntax == "go" else ["**/*.py", "**/*.ts", "**/*.tsx"],
+                           "syntax": syntax, "exclude": [{"path": "kernel", "reason": "Checker code"},
+                               {"path": "harness_profile.py", "reason": "Checker configuration"},
+                               {"path": "tests", "reason": "Test code"}]},
+            "role_dependencies": {"domain": ["domain"], "adapters": ["adapters", "domain"]}}
 
 
 def main() -> int:

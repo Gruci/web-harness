@@ -6,8 +6,8 @@
     "subtitle": "훅이 커널을 부르고, 커널은 프로파일로만 프로젝트를 안다",
     "quality_profile": "showcase",
     "repository": {
-      "url": "https://github.com/Gruci/web-harness",
-      "revision": "e3735f3df3235565d80ba44ba3fd5cfeea2eb6a9"
+      "url": "https://github.com/Gruci/claude-web-harness",
+      "revision": "73e2004f2db36eb93e1a822eecce4c60248929b4"
     },
     "views": [
       {
@@ -202,13 +202,13 @@
         {
           "path": "kernel/runner.py",
           "line": 385,
-          "end_line": 411,
+          "end_line": 399,
           "label": "main"
         },
         {
           "path": "kernel/runner.py",
-          "line": 142,
-          "end_line": 233,
+          "line": 143,
+          "end_line": 212,
           "label": "게이트 목록"
         }
       ]

@@ -26,8 +26,13 @@ class HarnessSetupTests(TemporaryRootTestCase):
 
     def complete_install(self) -> None:
         for rel in ("AGENTS.md", "CLAUDE.md", "kernel/hook.py", "kernel/runner.py",
-                    "dev/workflows/README.md"):
+                    "dev/workflows/README.md", "kernel/component_graph.py", "kernel/graph_workflow.py",
+                    "kernel/graph_checks.py", "kernel/graph_notifications.py", "kernel/port_contracts.py",
+                    "docs/architecture/components.schema.json", "dev/COMPONENTS.md",
+                    "dev/workflows/harness-assembly.md"):
             self.write(rel)
+        self.write(".agents/skills/harness-assembly-cdx/SKILL.md",
+                   "Read dev/workflows/harness-assembly.md")
         for name in ("feature-workflow", "full-feature", "impeccable", "lazy-audit",
                      "lazy-debt", "lazy-review", "md-audit", "review-loop", "test"):
             self.write(f"dev/workflows/{name}.md")
@@ -79,6 +84,31 @@ class HarnessSetupTests(TemporaryRootTestCase):
         code, output = self.diagnose()
         self.assertNotEqual(code, 0)
         self.assertIn("Stop", output)
+
+    def test_missing_graph_contract_or_processor_fails(self) -> None:
+        self.complete_install()
+        for rel in ("docs/architecture/components.schema.json", "kernel/graph_workflow.py"):
+            with self.subTest(rel=rel):
+                path = self.root / rel
+                content = path.read_bytes()
+                path.unlink()
+                code, output = self.diagnose()
+                path.write_bytes(content)
+                self.assertNotEqual(code, 0)
+                self.assertIn(rel, output)
+
+    def test_codex_assembly_does_not_require_claude_counterpart(self) -> None:
+        self.complete_install()
+        self.assertEqual(self.diagnose()[0], 0)
+        (self.root / ".agents/skills/harness-assembly-cdx/SKILL.md").unlink()
+        code, output = self.diagnose()
+        self.assertNotEqual(code, 0)
+        self.assertIn("harness-assembly-cdx", output)
+
+    def test_assembly_must_link_shared_workflow(self) -> None:
+        self.complete_install()
+        self.write(".agents/skills/harness-assembly-cdx/SKILL.md", "Unrelated text")
+        self.assertNotEqual(self.diagnose()[0], 0)
 
     def test_irrelevant_matcher_does_not_count_as_wiring(self) -> None:
         self.complete_install()

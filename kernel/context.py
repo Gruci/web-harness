@@ -65,6 +65,18 @@ def is_harness_own(rel: str) -> bool:
     return rel.startswith(HARNESS_OWN_PREFIXES) or rel in HARNESS_OWN_FILES
 
 
+def candidate_files(*patterns: str, root: Path | None = None) -> list[Path]:
+    """Tracked and untracked non-ignored files, with NUL-safe path handling."""
+    directory = ROOT if root is None else root
+    result = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", *patterns],
+        cwd=directory, capture_output=True, check=True, timeout=10,
+    )
+    names = set(result.stdout.decode("utf-8").split("\0"))
+    return [directory / name for name in sorted(names) if name and (directory / name).is_file()]
+
+
 def app_code(*patterns: str, under: str | None = None) -> list[Path]:
-    """게이트 대상 소스 — 추적 파일에서 하네스 자신의 발자국을 뺀 것."""
-    return [f for f in tracked(*patterns, under=under) if not is_harness_own(_rel(f))]
+    """Product source candidates include new files before git add."""
+    return [f for f in candidate_files(*patterns)
+            if not is_harness_own(_rel(f)) and (under is None or _rel(f).startswith(under))]

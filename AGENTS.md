@@ -31,7 +31,7 @@ Before starting implementation, list `workboard/` for open tasks (one untracked 
 |---|---|
 | Any Markdown you write or edit | `dev/MD_STANDARD.md` — three rules, component test |
 | Any new file or function | `dev/CONVENTIONS.md` — decided conventions and helper registry |
-| Python | `dev/DEVGUIDE.md`, then the relevant `dev/` sub-document |
+| Product code in any language | `dev/DEVGUIDE.md`, `dev/ARCHITECTURE.md`, and `dev/COMPONENTS.md` |
 | `frontend/` React and TypeScript | `design/DESIGN_GUIDE.md`, then the relevant `design/` sub-document |
 | Database schema, tables, columns | `dev/DATA_MODEL.md` and `dev/NAMING.md` |
 | Screen work of any kind | `design/RESPONSIVE.md` — desktop and mobile are defined together at plan time |
@@ -54,11 +54,13 @@ Search first and read targeted ranges. Do not preload unrelated Markdown.
 
 ## Repository invariants
 
-- Preserve dependency direction: domain packages → `db/` → `web/` API → `frontend/`. Never add reverse imports.
-- New UI belongs in `frontend/src/` React. A backend route without its consuming component is an invisible orphan, not a finished feature.
+- Preserve component responsibilities and allowed dependencies in the approved graph; see [dev/COMPONENTS.md](dev/COMPONENTS.md).
+- Before the first product code, select the stack with the user and run [the assembly workflow](dev/workflows/harness-assembly.md).
+- New classifications or boundaries require a concrete user proposal and a recorded actual response. Routine edits within approved boundaries do not repeat approval.
+- UI uses the selected project stack and approved delivery component. Verify the consuming screen when a feature includes one.
 - Before changing a signature or response shape, trace callers and consumers across DB, API, and React.
 - Prefer existing helpers, the standard library, native platform features, and installed dependencies. Make surgical changes. Report unrelated dead code without removing it.
-- Python and database conventions live in `dev/ARCHITECTURE.md`, `dev/NAMING.md`, `dev/DATA_MODEL.md`, and `dev/CONVENTIONS.md`. `kernel/runner.py` enforces the machine-checkable subset.
+- Architecture and database conventions live in `dev/ARCHITECTURE.md`, `dev/NAMING.md`, `dev/DATA_MODEL.md`, and `dev/CONVENTIONS.md`. `kernel/runner.py` enforces the machine-checkable subset.
 
 ## Evidence and debugging
 
