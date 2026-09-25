@@ -13,7 +13,7 @@ from pathlib import Path
 from kernel import feature_map, graph_workflow
 
 REPO = Path(__file__).resolve().parents[1]
-PROFILE = "PROFILE_SCHEMA = 3\nARCH = 'headless'\nLANG = 'python'\nLINTERS = ()\nCHECK_PATHS = {}\n"
+PROFILE = "PROFILE_SCHEMA = 1\nARCH = 'headless'\nLANG = 'python'\nLINTERS = ()\nCHECK_PATHS = {}\n"
 
 
 class SharedHookTests(unittest.TestCase):

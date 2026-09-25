@@ -184,7 +184,7 @@ Codex patch의 모든 추가·수정·이동 대상은 payload의 작업 디렉�
 ## 게이트
 
 판정 정본은 `kernel/gates/`이며 진입점은 `kernel/runner.py`다.
-서식 3의 기술 검사 경로는 `harness_profile.py`의 CHECK_PATHS로 정한다.
+기술 검사 경로는 `harness_profile.py`의 CHECK_PATHS로 정한다.
 업무 분류와 의존 관계는 [컴포넌트 계약](COMPONENTS.md)이 정본이다.
 
 | # | 게이트 | slug | 무엇을 막나 |

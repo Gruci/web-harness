@@ -40,3 +40,4 @@
 {"ts": "2026-09-25T13:55:53", "sid": "9fef5cbe", "hook": "check_file_rules", "kind": "gate", "gate": "profile_shape", "file": "harness_profile.py", "msg": "harness_profile.py: SYMBOLS['db_accessor_module'] 는 모르는 키다 — 쓸 수 있는 것: ssl_bypass error_response"}
 {"ts": "2026-09-25T13:56:03", "sid": "9fef5cbe", "hook": "check_file_rules", "kind": "gate", "gate": "profile_shape", "file": "harness_profile.py", "msg": "harness_profile.py: SYMBOLS['db_accessor'] 는 4.0.1 에서 폐기됐다 — 읽는 곳이 없으니 지운다"}
 {"ts": "2026-09-25T13:56:03", "sid": "9fef5cbe", "hook": "check_file_rules", "kind": "gate", "gate": "profile_shape", "file": "harness_profile.py", "msg": "harness_profile.py: SYMBOLS['db_accessor_module'] 는 4.0.1 에서 폐기됐다 — 읽는 곳이 없으니 지운다"}
+{"ts": "2026-09-25T14:17:05", "sid": "9fef5cbe", "hook": "check_file_rules", "kind": "gate", "gate": "profile_shape", "file": "harness_profile.py", "msg": "harness_profile.py: 서식 3 실행 불가 — PROFILE_SCHEMA = 1 이어야 한다"}

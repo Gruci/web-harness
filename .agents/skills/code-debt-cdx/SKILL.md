@@ -1,6 +1,6 @@
 ---
 name: code-debt-cdx
-description: Harvest every `debt:` marker (including legacy `lazy:` markers) in the codebase into a debt ledger so deliberate shortcuts get tracked instead of rotting. Use for "lazy debt", "what did we defer", "list the shortcuts", or a scheduled monthly review. Reports only, with a bounded maintenance metadata exception.
+description: Harvest every `debt:` marker in the codebase into a debt ledger so deliberate shortcuts get tracked instead of rotting. Use for "code debt", "what did we defer", "list the shortcuts", or a scheduled monthly review. Reports only, with a bounded maintenance metadata exception.
 ---
 
 # code-debt for Codex

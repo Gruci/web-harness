@@ -88,7 +88,7 @@ def capture(checker_dir: Path, bare: bool = False, fixture: Path | None = None) 
         work = Path(tmp) / "proj"
         if bare:
             work.mkdir()
-            (work / "harness_profile.py").write_text("PROFILE_SCHEMA = 3\nARCH = 'headless'\n", encoding="utf-8")
+            (work / "harness_profile.py").write_text("PROFILE_SCHEMA = 1\nARCH = 'headless'\n", encoding="utf-8")
             (work / "first.rb").write_text("puts 'classification pending'\n", encoding="utf-8")
         else:
             shutil.copytree(fixture or FIXTURE, work)

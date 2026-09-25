@@ -308,7 +308,7 @@ FILES["api_array_baseline.txt"] = "# 픽스처: 동결분 없음\n"
 FILES["harness_profile.py"] = '''"""픽스처 프로젝트 프로파일 — 게이트 전량을 켠다."""
 
 STAGE = "mature"
-PROFILE_SCHEMA = 3
+PROFILE_SCHEMA = 1
 LANG = "python"
 LINTERS = ()  # External process contracts are tested separately from deterministic golden output.
 

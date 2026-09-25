@@ -33,13 +33,12 @@ class HarnessSetupTests(TemporaryRootTestCase):
             self.write(rel)
         self.write(".agents/skills/harness-assembly-cdx/SKILL.md",
                    "Read dev/workflows/harness-assembly.md")
-        for name in ("feature-workflow", "full-feature", "impeccable", "lazy-audit",
-                     "lazy-debt", "lazy-review", "md-audit", "review-loop", "test"):
+        for name in ("feature-workflow", "full-feature", "impeccable", "code-audit",
+                     "code-debt", "code-trim", "md-audit", "review-loop", "test"):
             self.write(f"dev/workflows/{name}.md")
             reference = f"Read `dev/workflows/{name}.md`."
             self.write(f".agents/skills/{name}-cdx/SKILL.md", reference)
-            claude_name = "code-trim" if name == "lazy-review" else name.replace("lazy-", "code-")
-            self.write(f".claude/skills/{claude_name}/SKILL.md", reference)
+            self.write(f".claude/skills/{name}/SKILL.md", reference)
         claude = {}
         codex = {}
         for event, filename in (("PostToolUse", "check_file_rules"),

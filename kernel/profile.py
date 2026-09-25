@@ -16,7 +16,7 @@ import importlib.util
 import re
 from typing import Any
 
-from kernel import arch, lang
+from kernel import PROFILE_SCHEMA as _REQUIRED_SCHEMA, arch, lang
 from kernel.context import ROOT
 
 PROFILE_FILE = "harness_profile.py"
@@ -78,7 +78,7 @@ def _is_seq(value: object) -> bool:
 def _shape_errors(mod: Any) -> list[str]:
     """프로파일 원문의 모양 위반. 이름 오타·문자열/튜플 혼동·모르는 하위 키."""
     if mod is None:
-        return [f"{PROFILE_FILE}: PROFILE_SCHEMA = 3 프로파일과 컴포넌트 그래프를 먼저 구성하라"]
+        return [f"{PROFILE_FILE}: PROFILE_SCHEMA = {_REQUIRED_SCHEMA} 프로파일과 컴포넌트 그래프를 먼저 구성하라"]
     found: list[str] = []
     for name in vars(mod):
         if name.isupper() and len(name) > 1 and name not in _KNOWN_NAMES:
@@ -90,8 +90,8 @@ def _shape_errors(mod: Any) -> list[str]:
     schema = getattr(mod, "PROFILE_SCHEMA", None)
     if getattr(mod, "COMPONENT_GRAPH", "docs/architecture/components.json") != "docs/architecture/components.json":
         found.append(f"{PROFILE_FILE}: COMPONENT_GRAPH must be docs/architecture/components.json")
-    if schema != 3 or isinstance(schema, bool):
-        found.append(f"{PROFILE_FILE}: 서식 {schema!r} 실행 불가 — PROFILE_SCHEMA = 3 이어야 한다")
+    if schema != _REQUIRED_SCHEMA or isinstance(schema, bool):
+        found.append(f"{PROFILE_FILE}: 서식 {schema!r} 실행 불가 — PROFILE_SCHEMA = {_REQUIRED_SCHEMA} 이어야 한다")
     for name in _DICT_NAMES:
         value = getattr(mod, name, None)
         if value is not None and not isinstance(value, dict):

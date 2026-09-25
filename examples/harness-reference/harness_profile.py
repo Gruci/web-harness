@@ -1,5 +1,5 @@
 """Explicit Python binding for this reference only; never a new-app default."""
-PROFILE_SCHEMA = 3
+PROFILE_SCHEMA = 1
 LANG = "python"
 ARCH = "headless"
 LINTERS = ()

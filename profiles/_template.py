@@ -1,4 +1,4 @@
-"""profiles/_template.py — 언어 선택 전 새 프로젝트의 서식 3 시작점.
+"""profiles/_template.py — 언어 선택 전 새 프로젝트의 프로파일 시작점.
 
 기술을 먼저 정하지 않는다. 사용자가 스택과 업무 분류를 정하면 그래프와 검사 도구를 연결한다.
 첫 제품 코드는 승인된 컴포넌트에 속해야 한다. 기술 검사 경로는 업무 분류를 대신하지 않는다.
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 PRESET_SUMMARY = "스택 미정 — 사용자와 업무 분류 및 언어를 정한 뒤 조립한다"
 PRESET_FITS = "새 프로젝트. 첫 코드 전에 그래프와 검사 도구 연결을 완료한다"
-PROFILE_SCHEMA = 3
+PROFILE_SCHEMA = 1
 STAGE = "greenfield"
 
 # 실행 언어가 아니라 개발할 제품의 언어다. 하네스가 Python이어도 제품 언어를 추정하지 않는다.

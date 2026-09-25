@@ -73,7 +73,7 @@ func main() {}
 FILES["harness_profile.py"] = '''"""Go 픽스처 프로파일 — 서버 언어가 파이썬이 아닌 경우."""
 
 STAGE = "mature"
-PROFILE_SCHEMA = 3
+PROFILE_SCHEMA = 1
 
 LANG = "go"              # profiles/lang/go.py — 확장자·관용구·해당없음·린터를 다 가져온다
 ARCH = "headless"        # 웹도 화면도 없다 — 화면·웹 검사 9종이 [N/A] 로 찍힌다

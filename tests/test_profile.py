@@ -1,4 +1,4 @@
-"""Profile shape: schema 3 only, no default app language, unknown keys rejected."""
+"""Profile shape: current schema only, no default app language, unknown keys rejected."""
 
 import importlib.util
 from pathlib import Path
@@ -23,24 +23,24 @@ class ProfileTests(unittest.TestCase):
             spec.loader.exec_module(module)
         return module
 
-    def test_only_schema_three_is_accepted(self):
-        for source in (None, "", "PROFILE_SCHEMA = 2", "PROFILE_SCHEMA = 4"):
+    def test_only_current_schema_is_accepted(self):
+        for source in (None, "", "PROFILE_SCHEMA = 0", "PROFILE_SCHEMA = 2", "PROFILE_SCHEMA = True"):
             with self.subTest(source=source):
                 self.assertTrue(self.load_profile(source).PROFILE_ERRORS)
 
     def test_unselected_stack_has_no_python_defaults(self):
-        profile = self.load_profile("PROFILE_SCHEMA = 3\nLANG = None\n")
+        profile = self.load_profile("PROFILE_SCHEMA = 1\nLANG = None\n")
         self.assertEqual(profile.PROFILE_ERRORS, [])
         self.assertEqual(profile.SOURCE_EXT, ())
         self.assertIsNone(profile.SYNTAX)
         self.assertEqual(profile.pattern("env_read"), "")
 
     def test_unknown_check_path_key_is_rejected(self):
-        profile = self.load_profile("PROFILE_SCHEMA = 3\nCHECK_PATHS = {'read': 'db/reads'}\n")
+        profile = self.load_profile("PROFILE_SCHEMA = 1\nCHECK_PATHS = {'read': 'db/reads'}\n")
         self.assertTrue(profile.PROFILE_ERRORS)
 
     def test_technical_paths_and_graph_are_exported(self):
-        profile = self.load_profile("PROFILE_SCHEMA = 3\nCHECK_PATHS = {'ui': 'client/src'}\n")
+        profile = self.load_profile("PROFILE_SCHEMA = 1\nCHECK_PATHS = {'ui': 'client/src'}\n")
         self.assertEqual(profile.PROFILE_ERRORS, [])
         self.assertEqual(profile.layer("ui"), "client/src/")
         self.assertEqual(profile.layer_raw("ui"), "client/src")
@@ -62,7 +62,7 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual(harness_install.presets(), ["_template"])
         template = (context.ROOT / "profiles/_template.py").read_text(encoding="utf-8")
         profile = self.load_profile(template)
-        self.assertEqual(profile.PROFILE_SCHEMA, 3)
+        self.assertEqual(profile.PROFILE_ERRORS, [])
         self.assertIsNone(profile.LANG)
 
 

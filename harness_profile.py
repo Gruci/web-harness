@@ -23,7 +23,7 @@ import sys
 HARNESS_SELF = True
 
 STAGE = "greenfield"
-PROFILE_SCHEMA = 3
+PROFILE_SCHEMA = 1
 LANG = "python"
 # Pin the tool scope and ignore machine-global Ruff configuration.
 # Deliberately invalid fixtures are exercised by regression tests, not linted as product code.

@@ -7,8 +7,8 @@ import re
 import sys
 from pathlib import Path
 
-ADAPTERS = ("feature-workflow", "full-feature", "impeccable", "lazy-audit", "lazy-debt",
-            "lazy-review", "md-audit", "review-loop", "test")
+ADAPTERS = ("feature-workflow", "full-feature", "impeccable", "code-audit", "code-debt",
+            "code-trim", "md-audit", "review-loop", "test")
 WORKFLOW_REF = re.compile(r"dev/workflows/[A-Za-z0-9_-]+\.md")
 
 
@@ -23,9 +23,7 @@ def _read(root: Path, rel: str, problems: list[str]) -> str:
 def _check_adapters(root: Path, problems: list[str]) -> None:
     for name in ADAPTERS:
         codex = f".agents/skills/{name}-cdx/SKILL.md"
-        claude = f".claude/skills/{name.replace('lazy-', 'code-')}/SKILL.md"
-        if name == "lazy-review":
-            claude = ".claude/skills/code-trim/SKILL.md"
+        claude = f".claude/skills/{name}/SKILL.md"
         codex_text = _read(root, codex, problems)
         claude_text = _read(root, claude, problems)
         if name == "impeccable":  # External vendor skill remains one shared installation.
