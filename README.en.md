@@ -400,7 +400,7 @@ python -X utf8 -m kernel.diagram deliver  architecture docs/architecture/<name>.
 
 | Version | Changes |
 |:--|:--|
-| **v4.0.1** | Doc drift fixes after the component-graph switch, hook UTF-8 setup and trace recording consolidated into `_hookio`, residue check no longer passes silently when the kernel fails to load, retired profile keys (`HARNESS_ASSETS`, `SYMBOLS` db_accessor/db_accessor_module, `ALLOWLIST` sql_ident). |
+| **v4.0.1** | Doc drift fixes after the component-graph switch, trace recording consolidated into `_hookio` and every hook command registered as `python -X utf8`, residue check no longer passes silently when the kernel fails to load, compatibility leftovers removed (unread profile keys, the `.claude/worktrees/` location, `lazy:` markers). |
 | **v4.0.0** | Schema 3 component graphs, user decision records, stack-selected assembly, and reliable check outcomes. |
 | **v3.8.0** | Root holds only tool-convention files, and the harness map is checked both ways. Hub documents moved into their home directories — DEVGUIDE and HARNESS to `dev/`, DESIGN_GUIDE to `design/`, BACKLOG to `docs/`; check 28 now also catches map rows whose real file is gone; nested `def` gained a reasoned escape comment. |
 | **v3.7.0** | Task board moved out of git into root `workboard/` — one file per task, edit-time overlap warnings (Claude hook + Codex entrypoint sharing one kernel judgment), worktrees relocated to root `worktrees/` for agent neutrality, EDITING.md renamed to BACKLOG.md. |

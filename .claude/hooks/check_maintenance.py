@@ -11,8 +11,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import _hookio  # noqa: F401 — 임포트가 stdout 을 UTF-8 로 맞춘다
-
 ROOT = Path(__file__).resolve().parents[2]
 
 

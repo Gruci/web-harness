@@ -398,7 +398,7 @@ python -X utf8 -m kernel.diagram deliver  architecture docs/architecture/<이름
 
 | 버전 | 변경 내용 |
 |:--|:--|
-| **v4.0.1** | 컴포넌트 그래프 전환 뒤 남은 옛 레이어 서술 정리, 훅 UTF-8 설정과 관찰 기록을 `_hookio` 한 곳으로, 잔존 검사가 커널 로드 실패 때 조용히 통과하던 버그 수정, 읽는 곳 없는 프로파일 키 폐기(`HARNESS_ASSETS`, `SYMBOLS` 의 db_accessor·db_accessor_module, `ALLOWLIST` 의 sql_ident). |
+| **v4.0.1** | 컴포넌트 그래프 전환 뒤 남은 옛 레이어 서술 정리, 관찰 기록을 `_hookio` 한 곳으로 모으고 훅 명령을 전부 `python -X utf8` 로 통일, 잔존 검사가 커널 로드 실패 때 조용히 통과하던 버그 수정, 호환용 잔재(읽는 곳 없는 프로파일 키, `.claude/worktrees/` 자리, `lazy:` 마커) 제거. |
 | **v4.0.0** | 서식 3 컴포넌트 그래프와 사용자 결정 기록, 언어 선택 후 조립, 검사 신뢰성 개선. |
 | **v3.8.0** | 루트에는 도구 관례 파일만 두고 하네스 지도를 양방향으로 검사. 허브 문서를 제자리로 — DEVGUIDE·HARNESS 는 `dev/`, DESIGN_GUIDE 는 `design/`, BACKLOG 는 `docs/`. 검사 28 이 실물이 사라진 지도 행도 잡고, 중첩 `def` 에 사유 있는 탈출 주석 추가. |
 | **v3.7.0** | 과업 보드를 git 밖 루트 `workboard/` 로 — 과업당 파일 하나, 편집 시점 겹침 경고(Claude 훅과 Codex 진입점이 커널 판정 하나를 공유), 에이전트 중립을 위해 worktree 를 루트 `worktrees/` 로 이동, EDITING.md 를 BACKLOG.md 로 개명. |

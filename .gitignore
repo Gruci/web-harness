@@ -61,7 +61,6 @@ desktop.ini
 # Agent state is local; shared instructions, hooks, and configuration are tracked.
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
-.claude/worktrees/
 
 # 과업 보드 — "지금 누가 무엇을 잡고 있나". 세션이 전부 같은 머신에서 도니 파일시스템이 곧
 # 공유 채널이고, git 을 거치면 모든 세션이 한 자리를 고쳐 충돌하고 보드를 보이려고 머지가
@@ -72,7 +71,7 @@ workboard/*
 !workboard/README.md
 
 # 작업별 격리 체크아웃 — 위 보드와 같은 에이전트 중립 자리. 정본 목록은 폴더가 아니라
-# `git worktree list` 다. `.claude/worktrees/` 행은 EnterWorktree 툴 생성분 호환용으로 남긴다.
+# `git worktree list` 다.
 worktrees/
 .codex/auth.json
 .codex/history.jsonl

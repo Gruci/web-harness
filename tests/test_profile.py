@@ -1,4 +1,4 @@
-"""Schema 3 does not execute legacy classifications or select an app language."""
+"""Profile shape: schema 3 only, no default app language, unknown keys rejected."""
 
 import importlib.util
 from pathlib import Path
@@ -10,7 +10,7 @@ from kernel import context
 import harness_install
 
 
-class ProfileMigrationTests(unittest.TestCase):
+class ProfileTests(unittest.TestCase):
     def load_profile(self, source):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -35,17 +35,7 @@ class ProfileMigrationTests(unittest.TestCase):
         self.assertIsNone(profile.SYNTAX)
         self.assertEqual(profile.pattern("env_read"), "")
 
-    def test_old_layer_contract_is_rejected(self):
-        profile = self.load_profile("PROFILE_SCHEMA = 3\nLAYERS = {'read': 'db/reads'}\n")
-        self.assertTrue(profile.PROFILE_ERRORS)
-
-    def test_retired_keys_get_a_removal_notice(self):
-        profile = self.load_profile("PROFILE_SCHEMA = 3\nHARNESS_ASSETS = ()\n"
-                                    "SYMBOLS = {'db_accessor': None}\nALLOWLIST = {'sql_ident': ()}\n")
-        self.assertEqual(len(profile.PROFILE_ERRORS), 3)
-        self.assertTrue(all("폐기" in error for error in profile.PROFILE_ERRORS), profile.PROFILE_ERRORS)
-
-    def test_technical_check_paths_do_not_accept_old_roles(self):
+    def test_unknown_check_path_key_is_rejected(self):
         profile = self.load_profile("PROFILE_SCHEMA = 3\nCHECK_PATHS = {'read': 'db/reads'}\n")
         self.assertTrue(profile.PROFILE_ERRORS)
 

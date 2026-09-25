@@ -76,7 +76,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.claude/hooks/check_context_growth.py\"",
+            "command": "python -X utf8 \"$(git rev-parse --show-toplevel)/.claude/hooks/check_context_growth.py\"",
             "timeout": 10
           }
         ]
@@ -88,7 +88,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.claude/hooks/check_context_diet.py\"",
+            "command": "python -X utf8 \"$(git rev-parse --show-toplevel)/.claude/hooks/check_context_diet.py\"",
             "timeout": 10,
             "statusMessage": "Context diet gate"
           }
@@ -99,7 +99,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.claude/hooks/check_bash_write.py\"",
+            "command": "python -X utf8 \"$(git rev-parse --show-toplevel)/.claude/hooks/check_bash_write.py\"",
             "timeout": 15,
             "statusMessage": "Shell contract gate"
           }
@@ -110,7 +110,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.claude/hooks/check_workboard_overlap.py\"",
+            "command": "python -X utf8 \"$(git rev-parse --show-toplevel)/.claude/hooks/check_workboard_overlap.py\"",
             "timeout": 10,
             "statusMessage": "Workboard overlap check"
           }
@@ -121,7 +121,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.claude/hooks/check_worktree_name.py\"",
+            "command": "python -X utf8 \"$(git rev-parse --show-toplevel)/.claude/hooks/check_worktree_name.py\"",
             "timeout": 15,
             "statusMessage": "Worktree name gate"
           }
@@ -132,7 +132,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.claude/hooks/check_workflow_script.py\"",
+            "command": "python -X utf8 \"$(git rev-parse --show-toplevel)/.claude/hooks/check_workflow_script.py\"",
             "timeout": 15,
             "statusMessage": "Workflow model gate"
           }
@@ -144,7 +144,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.claude/hooks/check_agent_return.py\"",
+            "command": "python -X utf8 \"$(git rev-parse --show-toplevel)/.claude/hooks/check_agent_return.py\"",
             "timeout": 15,
             "statusMessage": "Agent return size gate"
           }
@@ -157,7 +157,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.claude/hooks/check_file_rules.py\""
+            "command": "python -X utf8 \"$(git rev-parse --show-toplevel)/.claude/hooks/check_file_rules.py\""
           }
         ]
       },
@@ -178,15 +178,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.claude/hooks/check_editing_lock.py\""
+            "command": "python -X utf8 \"$(git rev-parse --show-toplevel)/.claude/hooks/check_editing_lock.py\""
           },
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.claude/hooks/check_coding_rules.py\""
+            "command": "python -X utf8 \"$(git rev-parse --show-toplevel)/.claude/hooks/check_coding_rules.py\""
           },
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.claude/hooks/check_git_remote.py\""
+            "command": "python -X utf8 \"$(git rev-parse --show-toplevel)/.claude/hooks/check_git_remote.py\""
           },
           {
             "type": "command",

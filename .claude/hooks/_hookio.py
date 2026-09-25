@@ -26,14 +26,6 @@ _CHUNK = 65536
 _ROOT = Path(__file__).resolve().parents[2]
 _GIT_TIMEOUT_SEC = 10
 
-# Windows 기본 cp949 → 한글 출력이 UnicodeEncodeError 로 훅을 죽인다. 설정의 `python -X utf8` 에
-# 기대지 않는 이유: `--upgrade` 는 훅만 갈아끼우고 settings.json 은 옛 명령 그대로 남긴다.
-for _stream in (sys.stdout, sys.stderr):
-    try:
-        _stream.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
-
 
 def record(*args: object, **kwargs: object) -> None:
     """`kernel.trace.record` 위임. 관찰은 차단보다 덜 중요하다 — 커널이 없거나 기록이 실패해도 판정은 계속된다."""

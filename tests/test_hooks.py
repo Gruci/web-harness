@@ -74,25 +74,22 @@ def test_alive_no_nameerror() -> None:
 
 
 def test_worktree_rel_strip() -> None:
-    """worktree 안 파일의 상대경로는 접두를 벗겨야 한다 — 안 벗기면 경로 기반 게이트가
-    전부 오탐하고, 레거시 자리는 `.claude/` 접두가 is_harness_own 에 걸려 무음 통과한다."""
+    """worktree 안 파일의 상대경로는 접두를 벗겨야 한다 — 안 벗기면 경로 기반 게이트가 전부 오탐한다."""
     sys.path.insert(0, str(ROOT))
     from kernel.context import ROOT as KROOT, _rel
-    inside = KROOT / "worktrees" / "feat-x--12345678" / "db" / "reads" / "a.py"
-    assert _rel(inside) == "db/reads/a.py", "루트 worktrees/ 접두를 못 벗겼다"
-    legacy = KROOT / ".claude" / "worktrees" / "feat-x--12345678" / "db" / "reads" / "a.py"
-    assert _rel(legacy) == "db/reads/a.py", "레거시 .claude/worktrees/ 접두를 못 벗겼다"
-    assert _rel(KROOT / "db" / "reads" / "a.py") == "db/reads/a.py"
+    inside = KROOT / "worktrees" / "feat-x--12345678" / "orders" / "a.py"
+    assert _rel(inside) == "orders/a.py", "루트 worktrees/ 접두를 못 벗겼다"
+    assert _rel(KROOT / "orders" / "a.py") == "orders/a.py"
     assert _rel(KROOT / "workboard" / "x.md") == "workboard/x.md", "보드 파일을 worktree 로 오인"
 
 
 def test_worktree_location() -> None:
-    """자리 규약 — 루트 `worktrees/` 통과, 레거시 `.claude/worktrees/` 와 임의 자리는 기대 경로 제시."""
+    """자리 규약 — 루트 `worktrees/` 통과, `.claude/worktrees/` 와 임의 자리는 기대 경로 제시."""
     naming = _load("check_worktree_name")
     assert naming.wrong_location("worktrees/feat-x--12345678") is None
     assert naming.wrong_location("D:/repo/worktrees/feat-x--12345678") is None, "절대경로 정상 자리를 막았다"
     assert naming.wrong_location(".claude/worktrees/feat-x--12345678") == "worktrees/feat-x--12345678", \
-        "레거시 자리를 통과시켰다"
+        ".claude/ 밑 자리를 통과시켰다"
     assert naming.wrong_location("feat-x--12345678") == "worktrees/feat-x--12345678", "루트 직생성을 통과시켰다"
     assert naming.worktree_add_path(
         "git worktree add worktrees/feat-x--12345678 -b feat/x origin/main"
@@ -103,10 +100,10 @@ def test_outbound_link() -> None:
     """격리 밖 링크만 잡고 산문·트리 안 링크는 통과시킨다."""
     gate = _load("check_bash_write")
     blocked = [
-        ("cmd /c mklink /J .claude/worktrees/f--1234/frontend/node_modules "
+        ("cmd /c mklink /J worktrees/f--1234/frontend/node_modules "
          "D:/proj/frontend/node_modules", "의존성 링크(실사고 경로)"),
-        ("ln -s /etc/hosts .claude/worktrees/f--1234/hosts", "트리 밖"),
-        ("New-Item -ItemType Junction -Path .claude/worktrees/a/nm -Target ../../node_modules",
+        ("ln -s /etc/hosts worktrees/f--1234/hosts", "트리 밖"),
+        ("New-Item -ItemType Junction -Path worktrees/a/nm -Target ../../node_modules",
          "PowerShell junction"),
     ]
     allowed = [
@@ -219,18 +216,18 @@ def test_worktree_add_only_at_command_head() -> None:
         "EOF"
     )
     real = [
-        ("git worktree add .claude/worktrees/feat-x--16aa3fa6 -b feat/x origin/main",
+        ("git worktree add worktrees/feat-x--16aa3fa6 -b feat/x origin/main",
          "feat-x--16aa3fa6"),
-        ("git worktree add -b feat/x .claude/worktrees/topic--abcd1234 origin/main",
+        ("git worktree add -b feat/x worktrees/topic--abcd1234 origin/main",
          "topic--abcd1234"),
-        ("cd /repo && git worktree add .claude/worktrees/z--abcd1234", "z--abcd1234"),
+        ("cd /repo && git worktree add worktrees/z--abcd1234", "z--abcd1234"),
     ]
     prose = [
         (heredoc_prose, "커밋 메시지 heredoc 안 산문 — 실제 사고 케이스"),
         ('git commit -m "git worktree add -b X origin/main 설명"', "인용문 안"),
         ("echo git worktree add foo > notes.txt", "echo 인자"),
         ("git worktree list", "생성이 아닌 하위명령"),
-        ("git worktree remove .claude/worktrees/a", "제거"),
+        ("git worktree remove worktrees/a", "제거"),
     ]
     for command, expected in real:
         assert Path(naming.worktree_add_path(command) or "").name == expected, f"정상 생성을 못 읽었다: {command}"

@@ -95,14 +95,6 @@ class ComponentGateTests(TemporaryRootTestCase):
         self.assertEqual(([], []), self.dependencies.check(self.graph, self.root, paths)[:2])
         self.assertEqual(before, {path: path.read_bytes() for path in paths})
 
-    def test_legacy_layer_gate_entrypoints_are_removed(self):
-        from kernel.gates import layers, placement
-        for name in ("check_reads_writes", "check_connection_processing", "check_accessor_import_path",
-                     "check_reads_col_interpolation", "check_writes_round", "check_batch_direct_select"):
-            self.assertFalse(hasattr(layers, name), name)
-        self.assertFalse(hasattr(placement, "domain_prefixes"))
-        self.assertFalse(hasattr(placement, "check_file_placement"))
-
     def test_diagram_coverage_uses_implemented_graph_components(self):
         import json
         from kernel.gates import arch_diagram

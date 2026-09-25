@@ -92,7 +92,7 @@ def scope_mismatch(name: str, sid8: str) -> str | None:
 def wrong_location(token: str) -> str | None:
     """생성 경로의 부모 세그먼트가 `worktrees` 가 아니면 기대 경로를 돌려준다.
 
-    `.claude/worktrees/` 는 레거시다 — 에이전트 중립 원칙으로 루트 `worktrees/` 에 통일했다.
+    `.claude/worktrees/` 도 받지 않는다 — 에이전트 중립 원칙으로 자리는 루트 `worktrees/` 하나다.
     부모 이름만 보므로 외부 디스크의 `<어딘가>/worktrees/<이름>` 은 통과한다(외부 worktree 는
     프로토콜이 허용해 왔다).
     """
@@ -213,7 +213,7 @@ def main() -> None:
     if misplaced is not None:
         print(
             f"[WORKTREE NAME] worktree 자리가 규약 밖이다 — `{token}` → `{misplaced}`.\n"
-            "자리는 레포 루트 `worktrees/` 다(에이전트 중립 — `.claude/worktrees/` 는 레거시).\n"
+            "자리는 레포 루트 `worktrees/` 다(에이전트 중립).\n"
             "(정본: workboard/README.md 작업 격리)",
             file=sys.stderr,
         )

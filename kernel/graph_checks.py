@@ -7,7 +7,7 @@ from kernel.gates import components, context_api
 
 
 def sections(root: Path, verify: bool = False) -> list[tuple]:
-    """Graph rules cannot be exempted by the legacy file baseline."""
+    """Graph rules cannot be exempted by the file baseline (`harness_baseline.txt`)."""
     try:
         graph = component_graph.load(root)
         sources = feature_map.source_paths(root, graph)
