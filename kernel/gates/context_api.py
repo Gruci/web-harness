@@ -41,10 +41,10 @@ def _attribute(node, aliases):
 
 
 def check(graph: dict, root: Path, sources: list[Path]) -> tuple[list[str], list[str], list[dict]]:
-    """Return violations, unresolved analysis, and observed (never allowed) edges."""
-    errors = component_graph.validate(graph)
-    if errors:
-        return errors, [], []
+    """Return violations, unresolved analysis, and observed (never allowed) edges.
+
+    `graph` is already validated by `component_graph.load`; this gate does not re-validate it.
+    """
     if graph["technology"]["syntax"] != "python":
         return [], [f"{graph['technology']['syntax']}: component syntax analyzer unavailable"], []
     violations, unverified, observed = [], [], []

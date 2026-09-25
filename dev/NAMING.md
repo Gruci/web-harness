@@ -1,6 +1,6 @@
 # dev/NAMING.md — 변수·함수·필드명 규칙
 
-> 담는 것: 이름 짓는 원칙과 금지 축약어 목록. 담지 않는 것: 함수 역할 접두어 규칙(→ `dev/ARCHITECTURE.md`)·사용자 노출 라벨의 UX 기준(→ `design/UX.md`). 읽는 시점: 변수·함수·dict 키·DB 컬럼·API 필드 이름을 정할 때.
+> 담는 것: 이름 짓는 원칙과 금지 축약어 목록. 담지 않는 것: 함수의 역할 배치(→ `dev/ARCHITECTURE.md`)·사용자 노출 라벨의 UX 기준(→ `design/UX.md`). 읽는 시점: 변수·함수·dict 키·DB 컬럼·API 필드 이름을 정할 때.
 
 **핵심 원칙: "코드가 아닌 의미로 이름 짓는다"** — 누가 봐도 뭔지 알 수 있어야 한다.
 
@@ -23,14 +23,14 @@
 | dict 반환 키 | 한국어 비즈니스 용어 또는 명확한 영어 |
 | **DB 컬럼명** | dict 키·API 필드와 **동일 규칙** — 의미 기반 풀네임, 축약어·내부코드 금지. 새 컬럼 추가 전 `dev/DATA_MODEL.md` 설계 절차 준수 |
 | 사용자 노출 텍스트 | 공식 한국어 명칭. 툴팁·레이블·footnote에 내부 코드 절대 금지. 조어 금지 (정본: `design/UX.md`) |
-| 함수명 | 레이어별 prefix 준수 (`_fetch_*`, `_format_*`, `get_*` — 적용 스코프는 `dev/ARCHITECTURE.md`) |
-| DB 쓰기 함수 | prefix = `save_*`/`upsert_*`/`set_*`/`delete_*`/`refresh_*`/`log_*` + `init_*_db`(DDL 멱등 생성)·`seed_*`(초기 데이터)·`replace_*`(전량 교체 트랜잭션). 목록 밖 이름은 의미 있는 동사구면 허용 — 단 조회함수를 쓰기 prefix로 위장 금지, 순수 SELECT는 `db/reads/`의 `get_*` |
+| 함수명 | 의미 있는 동사구. 역할별 고정 접두어는 강제하지 않는다 (`dev/ARCHITECTURE.md`) |
+| DB 쓰기 함수 | `save_*`·`upsert_*`·`delete_*` 같은 변경 동사. 순수 SELECT는 `get_*` — 조회 함수를 쓰기 동사로 위장하지 않는다 |
 
 ## Python 일반 규칙
 
 1. **파일당 400줄 이하** — 초과 시 기능 단위로 파일 분리 (게이트 강제)
 2. **새 기능**: 기존 모듈 확장보다 새 파일 분리 우선
 3. **날짜 형식**: `YYYY-MM-DD` 문자열 통일
-4. **DB 스키마 변경**: `db/schema.py`의 `init_db()` 수정 후 적용
-5. **DB 함수 추가**: 호출부가 `from db.reads.{도메인} import` 직접 import
+4. **DB 스키마 변경**: 승인된 어댑터 컴포넌트의 스키마 모듈에서 멱등 생성 — 절차는 `dev/DATA_MODEL.md`
+5. **DB 함수 추가**: 호출부가 그래프가 허용한 간선을 따라 직접 import — 재수출 경유 금지
 6. **관례 갈림길**: 두 방식이 다 말이 되는 선택은 `dev/CONVENTIONS.md` 표가 정본 — 없으면 등재 후 진행

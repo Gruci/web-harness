@@ -84,8 +84,7 @@ CHECK_PATHS = {
     "tests": "tests", "schema": None,
 }
 FILES = {"settings": "settings.go", "ssl_util": None}
-SYMBOLS = {"db_accessor": None, "db_accessor_module": None,
-           "ssl_bypass": None, "error_response": None}
+SYMBOLS = {"ssl_bypass": None, "error_response": None}
 SCOPE = {"exclude_all": (), "exclude_scratch": ()}
 HUBS = ("CLAUDE.md", "DEVGUIDE.md", "HARNESS.md")
 VOCAB = {"ui_denylist": (), "abbrev_prefixes": (), "abbrev_names": ()}

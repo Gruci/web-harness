@@ -57,12 +57,9 @@ def configure_claude(check: bool = False) -> int:
 
     updated = json.dumps(settings, indent=2, ensure_ascii=False) + "\n"
     if not path.exists() or path.read_text(encoding="utf-8") != updated:
-        if path.exists():
-            backup = path.with_name(path.name + ".pre-harness-autonomy.bak")
-            if not backup.exists():
-                with backup.open("xb") as handle:
-                    handle.write(path.read_bytes())
-        path.write_text(updated, encoding="utf-8")
+        from kernel.codex_permissions import _write_backed_up   # 한 번만 백업하고 쓴다 — Codex 쪽과 같은 계약
+
+        _write_backed_up(path, updated)
     print(f"글로벌 권한 설정 완료: {path}")
     print("다음 claude 세션부터 승인 프롬프트 없이 실행된다.")
     return 0

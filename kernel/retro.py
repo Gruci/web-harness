@@ -13,7 +13,9 @@
 
 from __future__ import annotations
 
+import argparse
 import sys
+from collections import Counter
 
 from kernel import trace
 
@@ -50,22 +52,15 @@ def by_gate(items: list[dict[str, str]]) -> list[tuple[str, int, int, str, str]]
 
 def hot_spots(items: list[dict[str, str]]) -> list[tuple[str, str, int]]:
     """같은 게이트가 같은 파일에서 반복된 지점 — 관례가 안 정해졌거나 게이트가 오탐이다."""
-    counts: dict[tuple[str, str], int] = {}
-    for item in items:
-        if item.get("kind") == "gate" and item.get("file"):
-            key = (item.get("gate") or "?", item["file"])
-            counts[key] = counts.get(key, 0) + 1
+    counts = Counter((item.get("gate") or "?", item["file"]) for item in items
+                     if item.get("kind") == "gate" and item.get("file"))
     return sorted(((gate, path, n) for (gate, path), n in counts.items() if n >= HOT_SPOT_HITS),
                   key=lambda row: (-row[2], row[0], row[1]))
 
 
 def by_kind(items: list[dict[str, str]]) -> list[tuple[str, int]]:
     """게이트 밖 마찰 — 통읽기·반환 비만·잠금 잔존·원격 미설정·검사 불능."""
-    counts: dict[str, int] = {}
-    for item in items:
-        kind = item.get("kind") or "?"
-        if kind != "gate":
-            counts[kind] = counts.get(kind, 0) + 1
+    counts = Counter(item.get("kind") or "?" for item in items if item.get("kind") != "gate")
     return sorted(counts.items(), key=lambda row: (-row[1], row[0]))
 
 
@@ -100,15 +95,12 @@ def _print_report(items: list[dict[str, str]]) -> None:
 def main(argv: list[str]) -> int:
     if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
         sys.stdout.reconfigure(errors="replace")
-    stamped = ""
-    if "--since" in argv:
-        index = argv.index("--since") + 1
-        if index >= len(argv):
-            print("--since 뒤에 날짜가 없다 (예: --since 2026-08-10)")
-            return 2
-        stamped = argv[index]
-
-    items = since(stamped)
+    parser = argparse.ArgumentParser(prog="kernel.retro", allow_abbrev=False)
+    parser.add_argument("--since", default="", help="이 날짜 이후 관찰만 (예: 2026-08-10)")
+    try:
+        items = since(parser.parse_args(argv).since)
+    except SystemExit as exc:
+        return int(exc.code or 0)
     if not items:
         print("관찰 없음 — 훅이 아직 아무것도 막지 않았거나 기록이 비어 있다.")
         return 0

@@ -1,6 +1,5 @@
-# static_check_api_types.py
-# ⑮ API 응답 타입의 배열 필드는 옵셔널 (F3) — static_check.py 가 호출한다.
-# 게이트별 파일 분리는 ⑫(static_check_tests.py)·⑭(static_check_schema.py) 관례를 따른다.
+# kernel/gates/api_types.py
+# API 응답 타입의 배열 필드는 옵셔널 — `kernel/runner.py` 가 호출한다.
 #
 # 왜 이 게이트가 있나 (2026-07-31 같은 사고 2회):
 #   프론트 번들과 파이썬 코드는 **같은 배포에서 함께 갱신되지 않는다.** 번들만 먼저 올라간 창에
@@ -18,18 +17,11 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from kernel.context import READ_ENC, ROOT
+from kernel.context import READ_ENC, ROOT, _rel, read_list
 
 BASELINE = ROOT / "api_array_baseline.txt"
 # `field: T[];` — 옵셔널(`field?:`)은 `\w+\s*:` 에 걸리지 않아 자연히 빠진다.
 _ARRAY_FIELD = re.compile(r"^\s*(\w+)\s*:\s*[^;{}()]*\[\]\s*;", re.M)
-
-
-def _rel(path: Path) -> str:
-    try:
-        return path.resolve().relative_to(ROOT).as_posix()
-    except ValueError:
-        return path.as_posix()
 
 
 def _api_type_files(ui_files: list[Path]) -> list[Path]:
@@ -64,8 +56,7 @@ def check_api_array_optional(ui_files: list[Path]) -> list[str]:
     옵셔널(`field?: T[]`)로 선언하면 tsc 가 소비처에서 폴백을 강제한다."""
     if not baseline_ready():
         return []
-    frozen = {line.strip() for line in BASELINE.read_text(encoding=READ_ENC).splitlines()
-              if line.strip() and not line.startswith("#")}
+    frozen = read_list(BASELINE)
     return [
         f"{item}: API 응답 타입의 배열 필드는 옵셔널(`?`)로 — 백엔드 배포가 늦으면 undefined 로"
         " 도착해 소비처가 크래시한다. 필수로 둬야 하면 baseline 에 등재"

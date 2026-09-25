@@ -14,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from kernel import profile
-from kernel.context import READ_ENC, ROOT
+from kernel.context import ROOT, read_pairs
 
 SURFACE_FILE = ROOT / "harness_surface.txt"
 TITLE = "편집 표면 래칫(면제·제외 목록)"
@@ -30,14 +30,7 @@ def current() -> set[tuple[str, str]]:
 
 def frozen() -> set[tuple[str, str]]:
     """동결본. 형식은 `<표면 키>\\t<값>` 이고 주석과 빈 줄은 건너뛴다."""
-    entries: set[tuple[str, str]] = set()
-    for line in SURFACE_FILE.read_text(encoding=READ_ENC).splitlines():
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        key, _tab, value = line.partition("\t")
-        if value.strip():
-            entries.add((key.strip(), value.strip()))
-    return entries
+    return read_pairs(SURFACE_FILE)
 
 
 def run(py_files: list[Path], ui_files: list[Path]) -> list[tuple[str, list[str]]]:

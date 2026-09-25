@@ -29,12 +29,7 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _hookio import default_branch  # noqa: E402
-
-try:
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
+from _hookio import default_branch, payload_sid, record  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
@@ -236,6 +231,7 @@ def main() -> None:
 
     if not violations:
         sys.exit(0)
+    record("check_ui_copy", "ui_copy", sid=payload_sid(), msg=f"{len(violations)}건")
     print(f"[UI COPY GATE] 새 화면 문구 {len(strings)}건 중 위반 후보 {len(violations)}건 — "
           "고쳐라. 잡힌 단어는 harness_profile.py VOCAB['ui_denylist'] 에 등재하면 다음부턴 검사 6 이 막는다:",
           file=sys.stderr)

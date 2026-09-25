@@ -32,8 +32,6 @@ CHECK_PATHS: dict[str, str | None] = {
 }
 FILES: dict[str, str | None] = {"settings": None, "ssl_util": None}
 SYMBOLS: dict[str, str | None] = {
-    "db_accessor": None,
-    "db_accessor_module": None,
     "ssl_bypass": None,
     "error_response": None,
 }
@@ -50,7 +48,7 @@ VOCAB: dict[str, tuple[str, ...]] = {
 }
 ALLOWLIST: dict[str, tuple[str, ...]] = {
     "py_any": (), "ui_hex": (), "ui_fetch": (), "ui_fetch_wrappers": (),
-    "env_access": (), "ui_platform": (), "sql_ident": (),
+    "env_access": (), "ui_platform": (),
 }
 LEGACY_PATHS: tuple[tuple[str, str | None], ...] = ()
 ROOT_FILES: tuple[str, ...] = ()

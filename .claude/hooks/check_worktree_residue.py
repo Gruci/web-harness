@@ -47,13 +47,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _hookio import default_branch, git_output as _git  # noqa: E402
-
-# Windows 기본 cp949 → 하네스(utf-8)에서 한글 깨짐 방지
-try:
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
+from _hookio import default_branch, git_output as _git, payload_sid, record  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 _LOCK_PID = re.compile(r"\(pid (\d+)\)")
@@ -120,7 +114,8 @@ def main() -> None:
     if not residue:
         sys.exit(0)
 
-    # Stop 훅 차단 사유는 stderr 로 내보내야 Claude 에게 전달된다(stdout 은 무시됨).
+    record("check_worktree_residue", "worktree_residue", sid=payload_sid(), msg=f"{len(residue)}건")
+    # 경고(exit 1)의 stderr 는 사용자 화면에만 뜬다 — 모델 컨텍스트에는 들어가지 않는다(훅 문서).
     print(f"[WORKTREE RESIDUE] 일이 끝난 worktree {len(residue)}건이 남아있습니다.", file=sys.stderr)
     for tree in residue:
         name = Path(tree["path"]).name

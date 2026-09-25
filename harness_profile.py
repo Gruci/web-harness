@@ -40,10 +40,7 @@ ARCH = "headless"
 CHECK_PATHS: dict[str, str | None] = {"tests": "tests"}
 
 FILES: dict[str, str | None] = {"settings": None, "ssl_util": None}
-SYMBOLS: dict[str, str | None] = {
-    "db_accessor": None, "db_accessor_module": None,
-    "ssl_bypass": None, "error_response": None,
-}
+SYMBOLS: dict[str, str | None] = {"ssl_bypass": None, "error_response": None}
 
 # 픽스처는 일부러 위반을 심어둔 가짜 프로젝트다 — 검사 대상이 아니라 검사의 재료다.
 SCOPE: dict[str, tuple[str, ...]] = {
@@ -85,7 +82,7 @@ BEHAVIOR_TESTED_ROOTS: tuple[str, ...] = ()
 
 LESSONS_DOC: str | None = "dev/LESSONS.md"
 
-# 이 레포가 싣고 나가는 에이전트들. 프리셋 web_fastapi_react 와 같은 표를 쓴다.
+# 이 레포가 싣고 나가는 에이전트들의 모델·effort 정책표.
 AGENT_MODEL_POLICY: dict[str, tuple[str, str]] = {
     "executor":         ("fable", "high"),
     "orchestrator":     ("fable", "high"),

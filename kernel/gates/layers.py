@@ -30,7 +30,7 @@ def check_env_access(py_files: list[Path]) -> list[str]:
     comment = profile.pattern("comment") or "#"
     allow = tuple(profile.ALLOWLIST["env_access"])
     tests = profile.layer("tests")
-    exempt = profile.scratch() + ("kernel/",) + ((tests,) if tests else ())
+    exempt = profile.scratch() + ((tests,) if tests else ())
     bad: list[str] = []
     for f in py_files:
         rel = _rel(f)
@@ -97,7 +97,7 @@ def check_ssl_bypass_location(py_files: list[Path]) -> list[str]:
         return []
     call_re = re.compile(rf"\b{re.escape(bypass)}\s*\(")
     home = profile.FILES.get("ssl_util")
-    allowed = profile.scratch() + ("kernel/",)
+    allowed = profile.scratch()
     bad: list[str] = []
     for f in py_files:
         rel = _rel(f)

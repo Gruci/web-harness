@@ -13,12 +13,13 @@ MD 는 읽을거리가 아니라 다음 세션의 행동을 정하는 규칙이�
 from __future__ import annotations
 
 import ast
+import functools
 import json
 import re
 from pathlib import Path
 
 from kernel import profile
-from kernel.context import READ_ENC, ROOT, _ls_files, _rel
+from kernel.context import READ_ENC, ROOT, _ls_files, _rel, read_list
 
 MD_REF_ALLOWLIST_FILE = "md_ref_allowlist.txt"
 
@@ -43,25 +44,12 @@ def _doc_md_files() -> list[Path]:
 
 
 def _load_ref_allowlist() -> set[str]:
-    f = ROOT / MD_REF_ALLOWLIST_FILE
-    if not f.exists():
-        return set()
-    allow: set[str] = set()
-    for line in f.read_text(encoding=READ_ENC).splitlines():
-        token = line.split("#", 1)[0].strip()
-        if token:
-            allow.add(token)
-    return allow
+    return read_list(ROOT / MD_REF_ALLOWLIST_FILE)
 
 
-_TRACKED: set[str] | None = None
-
-
+@functools.cache
 def _tracked_set() -> set[str]:
-    global _TRACKED
-    if _TRACKED is None:
-        _TRACKED = set(_ls_files())
-    return _TRACKED
+    return set(_ls_files())
 
 
 def _ref_exists(token: str, md_dir: Path) -> bool:

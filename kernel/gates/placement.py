@@ -18,12 +18,6 @@ ROOT_INFRA = frozenset({
 })
 
 
-def layer_prefixes() -> tuple[str, ...]:
-    """프로파일의 기술 검사 대상 경로. 컴포넌트 소유권을 정의하지 않는다."""
-    found = {profile.layer(name) for name in profile.CHECK_PATHS}
-    return tuple(sorted(p for p in found if p))
-
-
 def check_root_litter() -> list[str]:
     """루트 직속 파일은 프로파일 ROOT_FILES 등재분만 — 확장자 불문.
 

@@ -14,25 +14,10 @@
 전 게이트 통틀어 "확실한 위반만 잡고 오탐 0" 원칙이 우선한다.
 """
 import sys
-from pathlib import Path
 
-from _hookio import read_hook_payload
-
-try:
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
+from _hookio import read_hook_payload, record
 
 MAX_RETURN_CHARS = 20_000
-
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
-
-# 차단할 때마다 관찰을 남긴다 — 회고가 읽을 데이터다. 기록이 실패해도 차단은 계속돼야 한다.
-try:
-    from kernel.trace import record
-except Exception:
-    def record(*_args: object, **_kwargs: object) -> None: ...
 
 
 def main() -> None:

@@ -47,13 +47,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _hookio import read_hook_payload  # noqa: E402
-
-# Windows 기본 cp949 → 하네스(utf-8)에서 한글 깨짐 방지
-try:
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
+from _hookio import SEPARATORS, read_hook_payload, record, segments  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -69,7 +63,6 @@ except Exception:
     SOURCE_SUFFIXES = _FALLBACK_EXT
 
 REDIRECTS = (">", ">>")
-SEPARATORS = (";", "|", "||", "&&", "&")
 
 # 절 2 — 판정 명령. 뒤에 파이프나 체인이 붙으면 판정의 exit code 가 사라진다.
 # merge 는 되돌릴 수 없어서 CI 축만 넣는다. 빌드·테스트 체인은 되돌릴 수 있으므로 자율이다 —
@@ -152,19 +145,6 @@ def blocked_targets(command: str) -> list[str]:
     return found
 
 
-def _segments(tokens: list[str]) -> list[list[str]]:
-    """구분자로 끊은 명령 조각들. 조각의 머리만 봐야 `echo "git commit"` 처럼 인자로 들어간
-    문자열을 명령으로 오독하지 않는다.
-    """
-    segments: list[list[str]] = [[]]
-    for token in tokens:
-        if token in SEPARATORS:
-            segments.append([])
-        else:
-            segments[-1].append(token)
-    return [segment for segment in segments if segment]
-
-
 def piped_verdict(command: str) -> str | None:
     """판정 명령이 마지막 조각이 아니면 그 명령 이름, 아니면 None.
 
@@ -172,7 +152,7 @@ def piped_verdict(command: str) -> str | None:
     checks 가 pending 이어도 merge 가 나간다. 판정이 마지막 조각이면 exit code 가 살아 있으니
     통과다 — `echo hi && gh pr checks` 는 막지 않는다.
     """
-    for segment in _segments(_tokens(command))[:-1]:
+    for segment in segments(_tokens(command))[:-1]:
         head = " ".join(segment[:3])
         hit = next((verdict for verdict in VERDICT_COMMANDS if head.startswith(verdict)), None)
         if hit:
@@ -186,7 +166,7 @@ def auto_merge(command: str) -> bool:
     조각의 머리(앞 3토큰)로 명령을 식별하는 것은 `_makes_link` 와 같은 이유다 — 커밋 메시지
     산문 안의 `gh pr merge --auto` 를 명령으로 오독하지 않는다.
     """
-    for segment in _segments(_tokens(command)):
+    for segment in segments(_tokens(command)):
         if " ".join(segment[:3]).startswith(AUTO_MERGE) and "--auto" in segment:
             return True
     return False
@@ -225,7 +205,7 @@ def outbound_link(command: str) -> str | None:
     경로 후보는 구분자를 가진 토큰만 본다 — `-Target` 같은 플래그명과 `Junction` 같은 값은
     경로가 아니다. 존재하지 않는 경로도 판정 대상이다(`-Path` 는 아직 만들기 전이다).
     """
-    for segment in _segments(_tokens(command)):
+    for segment in segments(_tokens(command)):
         if not _makes_link(segment):
             continue
         for token in segment:
@@ -275,7 +255,7 @@ def shared_tree_mutation(command: str) -> str | None:
     """
     if not _is_main_checkout() or not _parallel_mode():
         return None
-    for segment in _segments(_tokens(command)):
+    for segment in segments(_tokens(command)):
         head = " ".join(segment[:3])
         hit = next((mutation for mutation in MUTATING_GIT if head.startswith(mutation)), None)
         if hit:
@@ -294,57 +274,46 @@ def main() -> None:
         sys.exit(1)
 
     command = (payload.get("tool_input") or {}).get("command") or ""
+    message = _violation(command)
+    if message is None:
+        sys.exit(0)
+    print(message, file=sys.stderr)
+    record("check_bash_write", "bash_write", sid=str(payload.get("session_id") or ""),
+           msg=message.splitlines()[0])
+    sys.exit(2)
 
+
+def _violation(command: str) -> str | None:
+    """첫 위반의 안내문. 절 순서가 곧 우선순위다."""
     targets = blocked_targets(command)
     if targets:
-        print(
-            "[BASH GATE] 셸로 소스 파일을 쓰려 한다 — " + " · ".join(targets) + ".\n"
-            "Edit/Write 툴로 하라. Bash 리다이렉트는 작성 시점 게이트를 우회한다.\n"
-            "임시 산출물이면 스크래치패드 경로로 내보내라(레포 밖은 검사하지 않는다).",
-            file=sys.stderr,
-        )
-        sys.exit(2)
+        return ("[BASH GATE] 셸로 소스 파일을 쓰려 한다 — " + " · ".join(targets) + ".\n"
+                "Edit/Write 툴로 하라. Bash 리다이렉트는 작성 시점 게이트를 우회한다.\n"
+                "임시 산출물이면 스크래치패드 경로로 내보내라(레포 밖은 검사하지 않는다).")
 
     verdict = piped_verdict(command)
     if verdict:
-        print(
-            f"[BASH GATE] `{verdict}` 뒤에 파이프·체인이 붙었다 — 판정의 exit code 가 사라진다.\n"
-            "판정 명령을 단독 실행하고, merge 는 성공을 확인한 다음 호출로 분리하라.",
-            file=sys.stderr,
-        )
-        sys.exit(2)
+        return (f"[BASH GATE] `{verdict}` 뒤에 파이프·체인이 붙었다 — 판정의 exit code 가 사라진다.\n"
+                "판정 명령을 단독 실행하고, merge 는 성공을 확인한 다음 호출로 분리하라.")
 
     if auto_merge(command):
-        print(
-            "[BASH GATE] `gh pr merge --auto` — 기다림의 주체는 branch protection 필수 체크다.\n"
-            "필수 체크가 없는 레포에서 auto 는 기다릴 대상이 없어 즉시 머지한다(기다리는 척만 한다).\n"
-            "`gh pr checks <PR>` 을 단독 실행해 pass 를 확인한 뒤 `--auto` 없이 머지하라.",
-            file=sys.stderr,
-        )
-        sys.exit(2)
+        return ("[BASH GATE] `gh pr merge --auto` — 기다림의 주체는 branch protection 필수 체크다.\n"
+                "필수 체크가 없는 레포에서 auto 는 기다릴 대상이 없어 즉시 머지한다(기다리는 척만 한다).\n"
+                "`gh pr checks <PR>` 을 단독 실행해 pass 를 확인한 뒤 `--auto` 없이 머지하라.")
 
     link = outbound_link(command)
     if link:
-        print(
-            f"[BASH GATE] 격리 밖을 가리키는 링크를 만들려 한다 — `{link}`.\n"
-            "worktree 격리의 값이 격리다. 밖으로 실을 이으면 한쪽을 걷을 때 다른 쪽이 딸려 간다\n"
-            "(원류 실사고: node_modules junction 을 걸었다가 공유 체크아웃 쪽이 비워졌다).\n"
-            "의존성은 그 트리에서 직접 깔아라. 파일이 필요하면 링크 말고 복사하라.",
-            file=sys.stderr,
-        )
-        sys.exit(2)
+        return (f"[BASH GATE] 격리 밖을 가리키는 링크를 만들려 한다 — `{link}`.\n"
+                "worktree 격리의 값이 격리다. 밖으로 실을 이으면 한쪽을 걷을 때 다른 쪽이 딸려 간다\n"
+                "(원류 실사고: node_modules junction 을 걸었다가 공유 체크아웃 쪽이 비워졌다).\n"
+                "의존성은 그 트리에서 직접 깔아라. 파일이 필요하면 링크 말고 복사하라.")
 
     mutation = shared_tree_mutation(command)
     if mutation:
-        print(
-            f"[BASH GATE] 병렬 체제의 공유 메인 체크아웃에서 `{mutation}` — 구현·커밋은 자기 worktree 에서만 한다.\n"
-            "EnterWorktree 로 격리하거나, 이미 판 worktree 면 `git -C <worktree경로>` 로 호출하라.\n"
-            "(정본: workboard/README.md 작업 격리)",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-
-    sys.exit(0)
+        return (f"[BASH GATE] 병렬 체제의 공유 메인 체크아웃에서 `{mutation}` — 구현·커밋은 자기 worktree 에서만 한다.\n"
+                "EnterWorktree 로 격리하거나, 이미 판 worktree 면 `git -C <worktree경로>` 로 호출하라.\n"
+                "(정본: workboard/README.md 작업 격리)")
+    return None
 
 
 if __name__ == "__main__":

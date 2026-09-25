@@ -20,9 +20,11 @@ from __future__ import annotations
 import importlib.util
 import re
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 from kernel.context import ROOT
+from kernel.langs import python as _python
 
 # 커널이 싣고 다니는 팩이 기본이고, 프로젝트가 같은 이름으로 덮어쓸 수 있다.
 # 커널 쪽에 두는 이유: 언어팩은 프로젝트 설정이 아니라 **검사기가 그 언어를 이해하는 방법**이라
@@ -30,39 +32,52 @@ from kernel.context import ROOT
 SHIPPED_DIR = Path(__file__).resolve().parent / "langs"
 PROJECT_DIR = "profiles/lang"
 
-# 언어팩이 없거나 선언을 빠뜨렸을 때의 기본값. 파이썬 기준이다.
+# 언어팩이 선언을 빠뜨렸을 때의 기본값. 관용구 패턴은 파이썬팩이 정본이다.
 DEFAULTS: dict[str, Any] = {
     "EXT": ("*.py",),
     "SYNTAX": "python",
-    "PATTERNS": {
-        "env_read": r"\bos\.(getenv|environ)\b",
-        "any_type": r"[:\[,]\s*Any\b|->\s*Any\b",
-        "any_escape": "any-ok",
-        "closure_escape": "closure-ok",
-        "comment": "#",
-        "import_stmt": r"\bimport\b",
-    },
+    "PATTERNS": _python.PATTERNS,
     "NOT_APPLICABLE": {},
     "LINTERS": (),
 }
 
 
-def pack_path(name: str) -> Path | None:
-    """이 언어팩의 실물. 프로젝트 것이 커널 것을 이긴다."""
+def find_pack(kind: str, shipped: Path, project_dir: Path, name: str) -> Path | None:
+    """팩의 실물. 프로젝트 것(`project_dir`)이 커널 것(`shipped`)을 이긴다. 아키텍처팩 로더도 쓴다."""
     if not isinstance(name, str) or not re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_-]*", name):
-        raise ValueError(f"잘못된 언어팩 이름: {name!r}")
-    for candidate in (ROOT / PROJECT_DIR / f"{name}.py", SHIPPED_DIR / f"{name}.py"):
+        raise ValueError(f"잘못된 {kind} 이름: {name!r}")
+    for candidate in (project_dir / f"{name}.py", shipped / f"{name}.py"):
         if candidate.is_file():
             return candidate
     return None
 
 
-def available() -> list[str]:
+def list_packs(shipped: Path, project_dir: Path) -> list[str]:
     names: set[str] = set()
-    for directory in (SHIPPED_DIR, ROOT / PROJECT_DIR):
+    for directory in (shipped, project_dir):
         if directory.is_dir():
             names |= {p.stem for p in directory.glob("*.py") if not p.stem.startswith("_")}
     return sorted(names)
+
+
+def run_pack(kind: str, shipped: Path, project_dir: Path, name: str) -> ModuleType:
+    """팩 파일을 실행한 모듈. 못 찾거나 실행이 실패하면 ValueError — 프로파일 오류로 보고된다."""
+    path = find_pack(kind, shipped, project_dir, name)
+    if path is None:
+        raise ValueError(f"{kind}을 찾을 수 없음: {name}")
+    spec = importlib.util.spec_from_file_location(f"_pack_{name}", path)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"{kind} 로더를 만들 수 없음: {name}")
+    module = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(module)
+    except Exception as exc:
+        raise ValueError(f"{kind} 로드 실패: {name}: {type(exc).__name__}") from exc
+    return module
+
+
+def available() -> list[str]:
+    return list_packs(SHIPPED_DIR, ROOT / PROJECT_DIR)
 
 
 def load(name: str | None) -> dict[str, Any]:
@@ -71,17 +86,7 @@ def load(name: str | None) -> dict[str, Any]:
     pack["PATTERNS"] = dict(DEFAULTS["PATTERNS"])
     if name is None:
         return pack
-    path = pack_path(name)
-    if path is None:
-        raise ValueError(f"언어팩을 찾을 수 없음: {name}")
-    spec = importlib.util.spec_from_file_location(f"_lang_{name}", path)
-    if spec is None or spec.loader is None:
-        raise ValueError(f"언어팩 로더를 만들 수 없음: {name}")
-    module = importlib.util.module_from_spec(spec)
-    try:
-        spec.loader.exec_module(module)
-    except Exception as exc:
-        raise ValueError(f"언어팩 로드 실패: {name}: {type(exc).__name__}") from exc
+    module = run_pack("언어팩", SHIPPED_DIR, ROOT / PROJECT_DIR, name)
     for key in ("EXT", "SYNTAX", "NOT_APPLICABLE", "LINTERS"):
         if hasattr(module, key):
             pack[key] = getattr(module, key)

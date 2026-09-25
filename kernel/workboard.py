@@ -49,23 +49,28 @@ def board_dir() -> Path:
     return found.resolve().parent / "workboard"
 
 
+def task_files(board: Path) -> list[tuple[Path, str]]:
+    """과업 파일과 본문, 이름순. 보드 파일을 도는 곳은 전부 이것을 쓴다."""
+    if not board.is_dir():
+        return []
+    found: list[tuple[Path, str]] = []
+    for path in sorted(board.glob("*.md")):
+        if path.name == "README.md":
+            continue                      # 서식 설명이지 과업이 아니다
+        try:
+            found.append((path, path.read_text(encoding="utf-8")))
+        except OSError:
+            continue                      # 읽기 실패한 한 파일이 판정 전체를 죽이지 않는다
+    return found
+
+
 def active_rows(board: Path) -> list[str]:
     """진행 중 과업 행 — **파일 하나가 한 행**이다(`workboard/<수정범위>.md`).
 
     한 파일을 한 줄로 이어 붙이는 이유는 소비처 계약이다 — `#sid:` substring 과 `branch_of()`
     가 전부라, 줄바꿈을 살릴 이유가 없고 살리면 행 개수가 파일 수와 어긋난다.
     """
-    if not board.is_dir():
-        return []
-    rows: list[str] = []
-    for path in sorted(board.glob("*.md")):
-        if path.name == "README.md":
-            continue                      # 서식 설명이지 과업이 아니다
-        try:
-            rows.append(" | ".join(path.read_text(encoding="utf-8").split()))
-        except OSError:
-            continue                      # 읽기 실패한 한 파일이 판정 전체를 죽이지 않는다
-    return rows
+    return [" | ".join(text.split()) for _, text in task_files(board)]
 
 
 def branch_of(row: str) -> str | None:
@@ -111,13 +116,7 @@ def overlaps(target: Path, sid8: str, board: Path, root: Path) -> list[str]:
     except (ValueError, OSError):
         return []                         # 레포 밖 파일(스크래치패드 등)은 대상이 아니다
     hits: list[str] = []
-    for path in sorted(board.glob("*.md")):
-        if path.name == "README.md":
-            continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except OSError:
-            continue
+    for path, text in task_files(board):
         if sid8 and f"#sid:{sid8}" in text:
             continue                      # 내 과업
         for pattern in touch_globs(text):

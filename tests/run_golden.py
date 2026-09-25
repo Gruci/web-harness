@@ -5,9 +5,8 @@
 
   python -X utf8 tests/run_golden.py            대조 — 다르면 diff 출력 후 exit 1
   python -X utf8 tests/run_golden.py --update   현재 출력을 정답지로 저장
-  python -X utf8 tests/run_golden.py --checker <디렉토리>   검사기 위치 지정(기본 kernel/)
-
-`--checker src` 를 주면 리팩터 전 동결 스냅샷으로 돌려 결과를 비교할 수 있다.
+  python -X utf8 tests/run_golden.py --bare     스택 미선택·첫 코드 분류 대기
+  python -X utf8 tests/run_golden.py --go       Go 프로젝트
 """
 
 from __future__ import annotations
@@ -96,17 +95,10 @@ def capture(checker_dir: Path, bare: bool = False, fixture: Path | None = None) 
             if fixture != FIXTURE_GO:
                 (work / "unclassified.py").write_text("VALUE = 1\n", encoding="utf-8")
 
-        # 검사기가 평면 배치(static_check*.py)인지 패키지(kernel/)인지에 따라 진입점이 다르다.
-        if (checker_dir / "runner.py").exists():
-            shutil.copytree(checker_dir, work / "kernel",
-                            ignore=shutil.ignore_patterns("__pycache__"))
-            command = [sys.executable, "-X", "utf8", "-m", "kernel.runner"]
-            if not bare:
-                command.append("--verify")
-        else:
-            for src in sorted(checker_dir.glob("static_check*.py")):
-                shutil.copy2(src, work / src.name)
-            command = [sys.executable, "-X", "utf8", "static_check.py"]
+        shutil.copytree(checker_dir, work / "kernel", ignore=shutil.ignore_patterns("__pycache__"))
+        command = [sys.executable, "-X", "utf8", "-m", "kernel.runner"]
+        if not bare:
+            command.append("--verify")
 
         _git(work, "init", "-q")
         _git(work, "add", "-A")
@@ -140,8 +132,6 @@ def assert_meaningful(actual: str, bare: bool, go: bool) -> None:
 
 def main(argv: list[str]) -> int:
     checker_dir = REPO / "kernel"
-    if "--checker" in argv:
-        checker_dir = Path(argv[argv.index("--checker") + 1]).resolve()
     if not FIXTURE.exists():
         print("픽스처가 없다 — 먼저 tests/build_fixture.py 를 돌려라", file=sys.stderr)
         return 2

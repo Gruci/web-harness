@@ -89,11 +89,8 @@ def _verify_registration(root, port, parsed):
 
 
 def check(root: Path, graph: dict, parsed: dict | None = None) -> tuple[list[str], list[str]]:
-    """Read-only static check; never execute user code on save."""
-    failures = component_graph.validate(graph)
-    unverified = []
-    if failures:
-        return failures, unverified
+    """Read-only static check; never execute user code on save. `graph` is already validated by `component_graph.load`."""
+    failures, unverified = [], []
     if graph["technology"]["syntax"] != "python":
         return [], ["port contracts: selected syntax analyzer is unavailable"]
     trees = dict(parsed or {})

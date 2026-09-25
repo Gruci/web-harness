@@ -2,7 +2,7 @@
 
 > 담는 것: 정본 JSON 을 쓸 때 지킬 스키마 요약·불변조건·간격 계산·수리 순서·타입별 배치 규칙·진단 소비법. 담지 않는 것: 왜 그리나·1:1 매핑·검사 48(→ `dev/DIAGRAM.md`)·절차(→ `arch-diagram` 스킬). 읽는 시점: 정본 JSON 을 쓰거나 고치기 직전.
 
-스키마 실물은 `kernel/diagram/engine/schemas/` 다. 모든 스키마가 `additionalProperties: false` 라 모르는 필드는 거절된다 — 발명하지 말고 하네스 그림 3장을 서식으로 쓴다.
+스키마 실물은 `kernel/diagram/engine/schemas/` 다. 모든 스키마가 `additionalProperties: false` 라 모르는 필드는 거절된다 — 발명하지 말고 `docs/architecture/` 의 하네스 그림 4장을 서식으로 쓴다.
 
 ## 공통 골격
 

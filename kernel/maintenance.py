@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+import functools
 import json
 import subprocess
 import sys
@@ -102,14 +103,19 @@ def _ui_changes_since(sha: str) -> int:
     return len([line for line in changed.splitlines() if line.strip()])
 
 
-def _sources() -> list[Path]:
-    """정비가 볼 소스 — 게이트와 **같은 목록**이다.
+@functools.cache
+def _source_lists() -> tuple[list[Path], list[Path]]:
+    """정비가 볼 (서버, 화면) 소스 — 게이트와 **같은 목록**이다. 한 번의 판정에서 항목마다 다시 모으지 않는다.
 
     러너를 거치는 이유: 하네스 자기 발자국과 프로파일의 스코프 제외를 똑같이 적용해야 한다.
     직접 세면 clone 으로 딸려온 픽스처 30개가 프로젝트 코드로 잡혀, 갓 만든 빈 프로젝트가
     첫날부터 "감사할 때가 됐다"는 알림을 받는다.
     """
-    py_files, ui_files = runner.source_files()
+    return runner.source_files()
+
+
+def _sources() -> list[Path]:
+    py_files, ui_files = _source_lists()
     return py_files + ui_files
 
 
@@ -172,7 +178,7 @@ def due() -> list[tuple[str, str]]:
     found: list[tuple[str, str]] = []
     # 선언이 아니라 실물을 본다. 프리셋이 ui 레이어를 미리 적어두므로, 선언만 보면 화면
     # 파일이 한 개도 없는 프로젝트가 첫날부터 "화면 사용성 점검할 때"라는 알림을 받는다.
-    has_ui = bool(runner.source_files()[1])
+    has_ui = bool(_source_lists()[1])
     needs_ui = ("impeccable critique", "review-loop")
     for name in DEFAULTS:
         if name in needs_ui and not has_ui:

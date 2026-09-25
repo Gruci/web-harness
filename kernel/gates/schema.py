@@ -1,4 +1,4 @@
-"""static_check 확장 게이트 ⑭ — DDL 저장 타입 잘림 금지 (래칫).
+"""kernel/gates/schema.py — DDL 저장 타입 잘림 금지 (래칫).
 
 금액 컬럼을 REAL(float4)로 선언하면 원 단위 값이 유효 8자리에서 잘려 저장된다. 화면·다운로드·
 파생 계산이 전부 뭉개진 값을 쓰는데 예외는 나지 않는다 — 조용히 틀린다. 실제로 20개 컬럼이
@@ -10,7 +10,7 @@
 ⑭B NUMERIC(p,s) 의 s>0 은 같은 줄에 소스 정밀도 근거 주석 필수 — 스케일은 소스를 실제로 본
     사람만 정할 수 있다. `# any-ok: 사유` 와 같은 계약이며, 주석 문구가 아니라 확인 행위를 강제한다.
 
-기존 선언은 static_check_schema_baseline.txt 에 `경로:컬럼명` 으로 동결 — 줄어들기만 해야 한다.
+기존 선언은 ddl_types_baseline.txt 에 `경로:컬럼명` 으로 동결 — 줄어들기만 해야 한다.
 줄 번호가 아니라 컬럼명을 키로 쓰는 이유는 줄 번호가 무관한 편집에도 밀리기 때문이다.
 """
 
@@ -20,7 +20,7 @@ import re
 from pathlib import Path
 
 from kernel import profile
-from kernel.context import READ_ENC, ROOT, _rel
+from kernel.context import READ_ENC, ROOT, _rel, read_list
 
 BASELINE_FILE = ROOT / "ddl_types_baseline.txt"
 
@@ -32,19 +32,12 @@ LOSSY_FLOAT = re.compile(
 SCALED_NUMERIC = re.compile(r'"?([\w가-힣]+)"?\s+NUMERIC\s*\(\s*\d+\s*,\s*[1-9]', re.IGNORECASE)
 
 
-def _load_baseline() -> set[str]:
-    if not BASELINE_FILE.exists():
-        return set()
-    lines = BASELINE_FILE.read_text(encoding=READ_ENC).splitlines()
-    return {ln.strip() for ln in lines if ln.strip() and not ln.strip().startswith("#")}
-
-
 def check_ddl_lossy_types(py_files: list[Path]) -> list[str]:
     """게이트 ⑭: DDL 에서 소스 정밀도를 담지 못하는 타입 선언 검출."""
     target = profile.layer_raw("schema")
     if not target:
         return []
-    baseline = _load_baseline()
+    baseline = read_list(BASELINE_FILE)
     bad: list[str] = []
     for f in py_files:
         rel = _rel(f)

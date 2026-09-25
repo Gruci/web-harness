@@ -1,4 +1,4 @@
-"""profiles/lang/typescript.py — TypeScript 언어팩 (서버가 Node 인 경우).
+"""kernel/langs/typescript.py — TypeScript 언어팩 (서버가 Node 인 경우). 프로젝트는 `profiles/lang/` 에서 덮어쓸 수 있다.
 
 프론트가 TS 인 경우는 이 팩이 아니라 프로파일의 `UI_EXT` 가 담당한다. 여기는 **서버까지
 TS 인 프로젝트**용이다.

@@ -60,9 +60,6 @@ def _parse_gcc(output: str, slug: str) -> list[str]:
     return found
 
 
-PARSERS = {"gcc": _parse_gcc}
-
-
 def _entry_name(entry: dict) -> str:
     return str(entry.get("slug") or (entry.get("cmd") or ["도구"])[0])
 
@@ -77,8 +74,7 @@ def run_one(entry: dict) -> tuple[list[str], str]:
     """한 도구를 돌린다. 반환은 (위반 목록, 건너뛴 사유). 사유가 있으면 [TOOL]."""
     slug = _entry_name(entry)
     parser_name = str(entry.get("parse", "gcc"))
-    parser = PARSERS.get(parser_name)
-    if parser is None:
+    if parser_name != "gcc":                       # 지원하는 출력 형식은 gcc 하나다
         return [], f"{slug}: 알 수 없는 출력 파서 {parser_name}"
     absent = missing_tool(entry)
     if absent:
@@ -94,7 +90,7 @@ def run_one(entry: dict) -> tuple[list[str], str]:
         return [], f"{slug}: 실행 실패 {exc.__class__.__name__}"
 
     output = (done.stdout or "") + "\n" + (done.stderr or "")
-    found = parser(output, slug)
+    found = _parse_gcc(output, slug)
     if done.returncode and not found:
         return [], f"{slug}: 종료 코드 {done.returncode}, 해석 가능한 진단 없음 — {output.strip()[:300]}"
     return found, ""

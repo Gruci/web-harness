@@ -33,7 +33,7 @@ effort: high
 | 조건 | 확인 |
 |------|------|
 | plan 파일 설계표 전 행 구현 | plan에 완료 표시 |
-| 게이트 통과 | `python -X utf8 -m kernel.runner` exit 0 |
+| 게이트 통과 | `python -X utf8 -m kernel.runner --verify` exit 0 — `[TOOL]`·결정 대기는 통과가 아니다 |
 | 타입체크·테스트 (존재할 때) | 실행 출력으로 확인 |
 | 보드 정리 | `workboard/`에 자기 과업 파일 없음 |
 | plan 완결성 | 미정의 참조 발견 시 채우지 않고 반환 — 무리 구현 금지 |

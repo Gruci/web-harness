@@ -17,11 +17,8 @@
 import sys
 from pathlib import Path
 
-# Windows 기본 cp949 → 하네스(utf-8)에서 한글 깨짐 방지
-try:
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _hookio import payload_sid, record  # noqa: E402
 
 MOCKUP_DIR = Path(__file__).resolve().parents[2] / "docs" / "tasks" / "mockup"
 
@@ -35,6 +32,7 @@ def main() -> None:
     if not residue:
         sys.exit(0)
 
+    record("check_mockup_residue", "mockup_residue", sid=payload_sid(), msg=f"{len(residue)}건")
     # Stop 훅 차단 사유는 stderr 로 내보내야 Claude 에게 전달된다(stdout 은 무시됨).
     print(f"[MOCKUP RESIDUE] docs/tasks/mockup/ 에 목업 {len(residue)}건이 남아있습니다.", file=sys.stderr)
     for path in residue:

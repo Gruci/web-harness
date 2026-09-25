@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import re
 import shutil
@@ -16,6 +17,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+from collections import Counter
 from pathlib import Path
 
 from kernel import KERNEL_VERSION, UPSTREAM, UPSTREAM_BRANCH, profile, runner
@@ -33,14 +35,8 @@ BASELINE_HEADER = """# harness_baseline.txt — 하네스 설치 시점에 이�
 # 신규 파일은 여기 없으므로 처음부터 전 게이트를 통과해야 한다 — 그게 이 설계의 목적이다.
 """
 
-# 존재해야 게이트가 켜지는 동결 파일. 없으면 해당 게이트가 [SKIP] 이다.
-GATE_BASELINES: tuple[tuple[Path, str], ...] = (
-    (api_types.BASELINE, "# 설치 시점 동결분 없음 — 필수 배열 필드가 새로 늘면 걸린다\n"),
-)
-
-
-KNOWN_FLAGS = frozenset({"--list", "--doctor", "--prune", "--dry-run", "--preset",
-                         "--check-update", "--upgrade", "--check-agents"})
+# 존재해야 게이트가 켜지는 동결 파일. 없으면 그 게이트가 [SKIP] 이다.
+API_BASELINE_HEADER = "# 설치 시점 동결분 없음 — 필수 배열 필드가 새로 늘면 걸린다\n"
 
 # ── 하네스 자체 업데이트 ────────────────────────────────────────────────────────
 #
@@ -116,10 +112,6 @@ def upgrade() -> int:
     return subprocess.run([sys.executable, "-X", "utf8", "-m", "kernel.harness_setup"],
                           cwd=ROOT).returncode
 
-# 목록에 보여줄 순서. 흔한 것부터, 빈 서식은 마지막. 여기 없는 프리셋은 뒤에 이름순으로 붙는다.
-PRESET_ORDER = (DEFAULT_PRESET,)
-
-
 def profile_modules() -> list[str]:
     """`--preset` 으로 지정 가능한 전부. 남의 프로젝트 프로파일도 포함된다."""
     return sorted(p.stem for p in PRESET_DIR.glob("*.py") if p.stem != "__init__")
@@ -128,8 +120,8 @@ def profile_modules() -> list[str]:
 def check_install_location() -> str:
     """하네스가 세션 루트에 있는가. 어긋나면 그 사유를 돌려준다(정상이면 빈 문자열).
 
-    훅 command 는 `.claude/hooks/...` 상대경로다. 세션이 시작되는 곳과 하네스가 있는 곳이
-    다르면 훅이 통째로 안 걸리는데, **그 상태는 화면에 아무것도 안 뜬다.** [SKIP] 조차
+    훅 command 는 `$(git rev-parse --show-toplevel)/.claude/hooks/...` 다. 하네스가 git 최상위가
+    아닌 하위 폴더에 있으면 그 경로에 훅이 없어 통째로 안 걸리는데, **그 상태는 화면에 아무것도 안 뜬다.** [SKIP] 조차
     없다 — 검사기가 아예 안 불리기 때문이다. 하네스가 죽는 방식 중 제일 조용한 경로다.
 
     판정은 git 최상위와 대조한다. 레포 루트가 곧 세션 루트라는 보장은 없지만, 하네스가
@@ -157,9 +149,9 @@ def report_install_location() -> bool:
     print("[설치 위치] 하네스가 레포 루트가 아니라 하위 폴더에 있다.\n")
     print(f"   레포 루트 : {ROOT.parents[len(Path(nested).parts) - 1]}")
     print(f"   하네스    : {ROOT}   (= {nested}/)")
-    print("\n   이 상태로는 훅이 하나도 안 걸린다. `.claude/settings.json` 의 훅 명령이")
-    print("   `.claude/hooks/...` 상대경로라, 세션이 시작되는 레포 루트에 `.claude/` 가")
-    print("   없으면 전부 실패한다. 그리고 그 실패는 화면에 아무것도 안 남긴다.")
+    print("\n   이 상태로는 훅이 하나도 안 걸린다. `.claude/settings.json` 의 훅 명령은")
+    print("   git 최상위 기준(`$(git rev-parse --show-toplevel)/.claude/hooks/...`)이라, 레포 루트에")
+    print("   `.claude/` 가 없으면 전부 실패한다. 그리고 그 실패는 화면에 아무것도 안 남긴다.")
     print("\n   고치는 법 — 하네스 내용물을 레포 루트로 올린다:")
     print(f"       cd {ROOT.parent}")
     print(f"       git mv {nested}/* {nested}/.[!.]* .  2>/dev/null || "
@@ -212,9 +204,7 @@ def presets() -> list[str]:
     선언을 요구하는 이유: `profiles/` 에는 특정 프로젝트의 실물 프로파일도 섞여 산다.
     그걸 새 프로젝트에 권하면 남의 레이어 이름과 어휘를 물려받는다.
     """
-    declared = [name for name in profile_modules() if _preset_meta(name)[0]]
-    ranked = [name for name in PRESET_ORDER if name in declared]
-    return ranked + [name for name in declared if name not in ranked]
+    return [name for name in profile_modules() if _preset_meta(name)[0]]
 
 
 def _preset_meta(name: str) -> tuple[str, str]:
@@ -233,8 +223,7 @@ def _preset_meta(name: str) -> tuple[str, str]:
 def print_presets() -> None:
     """사람이 고를 수 있게 요약과 함께 나열한다.
 
-    이름만 나열하면 `web_fastapi_react` 와 `api_fastapi` 중 무엇이 자기 경우인지 모른다.
-    스택 이름을 아는 사람만 고를 수 있는 목록은 목록이 아니다.
+    이름만 나열하면 무엇이 자기 경우인지 모른다. 스택 이름을 아는 사람만 고를 수 있는 목록은 목록이 아니다.
     """
     print("쓸 수 있는 프리셋:\n")
     for name in presets():
@@ -258,18 +247,13 @@ def install_profile(preset: str) -> bool:
     if preset not in profile_modules():
         raise ValueError(f"사용할 수 없는 프리셋: {preset}")
     target = ROOT / profile.PROFILE_FILE
-    if target.exists() and not getattr(profile, "IS_HARNESS_SELF", False):
+    if target.exists() and not profile.IS_HARNESS_SELF:
         print(f"[프로파일] {profile.PROFILE_FILE} 이미 있음 — 건드리지 않는다")
         return False
     if target.exists():
-        print(f"[프로파일] 딸려온 하네스 자기 프로파일을 이 프로젝트의 것으로 교체한다")
+        print("[프로파일] 딸려온 하네스 자기 프로파일을 이 프로젝트의 것으로 교체한다")
         reset_shipped_state()
-    source = PRESET_DIR / f"{preset}.py"
-    if not source.exists():
-        print(f"[프로파일] 프리셋 '{preset}' 없음. 쓸 수 있는 것: {' '.join(presets())}")
-        print("   --list 로 각각이 어떤 경우인지 볼 수 있다.")
-        return False
-    shutil.copy2(source, target)
+    shutil.copy2(PRESET_DIR / f"{preset}.py", target)
     print(f"[프로파일] {profile.PROFILE_FILE} 생성 (프리셋 {preset})")
     print("   → 업무 분류를 사용자와 승인하고 언어별 검사 도구를 연결하라.")
     return True
@@ -296,10 +280,9 @@ def reset_shipped_state() -> None:
 
 
 def install_gate_baselines() -> None:
-    for path, header in GATE_BASELINES:
-        if path.exists():
-            continue
-        path.write_text(header, encoding="utf-8")
+    path = api_types.BASELINE
+    if not path.exists():
+        path.write_text(API_BASELINE_HEADER, encoding="utf-8")
         print(f"[동결 파일] {path.name} 생성 — 이게 없으면 해당 게이트가 [SKIP] 이다")
 
 
@@ -316,9 +299,7 @@ def _write_baseline(pairs: list[tuple[str, str]]) -> None:
 
 
 def _report(pairs: list[tuple[str, str]], label: str) -> None:
-    by_gate: dict[str, int] = {}
-    for slug, _path in pairs:
-        by_gate[slug] = by_gate.get(slug, 0) + 1
+    by_gate = Counter(slug for slug, _path in pairs)
     print(f"\n{label} — {len(pairs)}건 (게이트 {len(by_gate)}종)")
     for slug in sorted(by_gate, key=lambda s: (-by_gate[s], s)):
         print(f"   {by_gate[slug]:>4}  {slug}")
@@ -334,38 +315,43 @@ def _prune() -> int:
     return 0
 
 
+def _parse(argv: list[str]) -> argparse.Namespace:
+    # 모르는 옵션은 무시하지 않고 거절한다(argparse 기본 exit 2). `--dryrun` 오타가 실제 설치로 돌아
+    # 동결 파일을 덮어쓰는 것이 실사고 경로다. `allow_abbrev=False` — 줄임 옵션도 오타와 같이 거절한다.
+    parser = argparse.ArgumentParser(prog="harness_install.py", allow_abbrev=False)
+    for flag in ("--list", "--doctor", "--prune", "--dry-run", "--check-update", "--upgrade",
+                 "--check-agents"):
+        parser.add_argument(flag, action="store_true")
+    parser.add_argument("--preset", default=DEFAULT_PRESET)
+    return parser.parse_args(argv)
+
+
 def main(argv: list[str]) -> int:
     try:
         sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
-    args = set(argv)
+    try:
+        args = _parse(argv)
+    except SystemExit as exc:
+        return int(exc.code or 0)
 
-    # 모르는 옵션은 무시하지 않고 거절한다. `--dryrun` 오타가 실제 설치로 돌아 동결 파일을
-    # 덮어쓰는 것이 실사고 경로다 — 오타의 대가가 "아무 일 없음"이 아니라 "다른 일이 일어남"이다.
-    unknown = [a for a in argv if a not in KNOWN_FLAGS
-               and not (argv.index(a) > 0 and argv[argv.index(a) - 1] == "--preset")]
-    if unknown:
-        print(f"모르는 옵션: {' '.join(unknown)}")
-        print(f"쓸 수 있는 것: {' '.join(sorted(KNOWN_FLAGS))}")
-        return 2
-
-    if "--list" in args:
+    if args.list:
         print_presets()
         return 0
 
-    if "--check-agents" in args:
+    if args.check_agents:
         from kernel.harness_setup import check_agents
 
         return check_agents(ROOT)
 
-    if "--check-update" in args:
+    if args.check_update:
         return check_update()
 
-    if "--upgrade" in args:
+    if args.upgrade:
         return upgrade()
 
-    if "--doctor" in args:
+    if args.doctor:
         from kernel.harness_setup import check_agents
 
         print_language_report()
@@ -375,17 +361,9 @@ def main(argv: list[str]) -> int:
     if not report_install_location():
         return 2
 
-    preset = DEFAULT_PRESET
-    if "--preset" in argv:
-        index = argv.index("--preset") + 1
-        if index >= len(argv):
-            print("--preset 뒤에 이름이 없다. --list 로 목록을 봐라")
-            return 2
-        preset = argv[index]
-
-    if "--prune" not in args and "--dry-run" not in args:
+    if not args.prune and not args.dry_run:
         try:
-            created = install_profile(preset)
+            created = install_profile(args.preset)
         except ValueError as exc:
             print(f"[프로파일] {exc}")
             return 2
@@ -400,11 +378,11 @@ def main(argv: list[str]) -> int:
         return 2
     report_unlisted_layers()
 
-    if "--prune" in args:
+    if args.prune:
         return _prune()
 
     current = runner.collect_all_violations()
-    if "--dry-run" in args:
+    if args.dry_run:
         _report(current, "[DRY RUN] 현재 위반 (자동 동결하지 않음)")
         return 0
 

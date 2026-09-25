@@ -1,4 +1,4 @@
-"""profiles/lang/go.py — Go 언어팩.
+"""kernel/langs/go.py — Go 언어팩. 프로젝트는 `profiles/lang/go.py` 로 덮어쓸 수 있다.
 
 구문 분석이 필요한 게이트는 `go vet` 과 `staticcheck` 에 위임한다. 우리가 Go AST 를
 다시 파싱할 이유가 없다 — 그쪽이 정확하고, 이미 그 생태계의 표준이다.

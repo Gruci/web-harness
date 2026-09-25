@@ -26,6 +26,41 @@ _CHUNK = 65536
 _ROOT = Path(__file__).resolve().parents[2]
 _GIT_TIMEOUT_SEC = 10
 
+# Windows 기본 cp949 → 한글 출력이 UnicodeEncodeError 로 훅을 죽인다. 설정의 `python -X utf8` 에
+# 기대지 않는 이유: `--upgrade` 는 훅만 갈아끼우고 settings.json 은 옛 명령 그대로 남긴다.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+
+def record(*args: object, **kwargs: object) -> None:
+    """`kernel.trace.record` 위임. 관찰은 차단보다 덜 중요하다 — 커널이 없거나 기록이 실패해도 판정은 계속된다."""
+    try:
+        if str(_ROOT) not in sys.path:
+            sys.path.insert(0, str(_ROOT))
+        from kernel.trace import record as _record
+        _record(*args, **kwargs)
+    except Exception:
+        pass
+
+
+SEPARATORS = (";", "|", "||", "&&", "&")
+
+
+def segments(tokens: list[str]) -> list[list[str]]:
+    """셸 구분자로 끊은 명령 조각들. 조각의 머리만 봐야 `echo "git commit"` 처럼 인자로 들어간
+    문자열을 명령으로 오독하지 않는다. 셸 훅 둘이 같은 판정을 쓴다.
+    """
+    found: list[list[str]] = [[]]
+    for token in tokens:
+        if token in SEPARATORS:
+            found.append([])
+        else:
+            found[-1].append(token)
+    return [segment for segment in found if segment]
+
 
 def git_output(*args: str) -> str | None:
     """git 표준출력. 실패(비정상 종료·예외)면 None — 판정을 건너뛰라는 신호다."""
@@ -71,6 +106,14 @@ def read_hook_payload() -> dict[str, Any]:
             continue  # 객체가 아직 안 완성됨 — 더 읽는다
         return _as_object(obj)
     return _as_object(decoder.raw_decode(buf.lstrip())[0])
+
+
+def payload_sid() -> str:
+    """페이로드의 session_id. 판정에 페이로드가 필요 없는 훅이 관찰 기록용으로만 읽는다 — 실패하면 빈 문자열."""
+    try:
+        return str(read_hook_payload().get("session_id") or "")
+    except Exception:
+        return ""
 
 
 def _as_object(obj: Any) -> dict[str, Any]:

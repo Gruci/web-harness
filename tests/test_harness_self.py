@@ -83,8 +83,7 @@ def test_fresh_install_is_green() -> None:
         _git(work, "add", "-A")
         _git(work, "commit", "-qm", "init")
 
-        first = _run([sys.executable, "-X", "utf8", "harness_install.py",
-                      "--preset", "web_fastapi_react"], work)
+        first = _run([sys.executable, "-X", "utf8", "harness_install.py"], work)
         assert first.returncode == 0, first.stdout.decode("utf-8", "replace")
         assert (work / "harness_profile.py").exists(), "프리셋 프로파일이 안 만들어졌다"
 

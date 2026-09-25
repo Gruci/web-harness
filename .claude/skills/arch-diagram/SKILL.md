@@ -15,7 +15,7 @@ description: 아키텍처·흐름·시퀀스·데이터플로·상태기계 그�
 
 ## 2. 정본을 쓴다 — 소스 증거까지
 
-- 첫 architecture 는 `harness_profile.py` 의 `LAYERS` 실존 경로와 도메인 패키지(최상위 소문자 패키지)에서 노드를 만든다. 열은 의존 방향(화면 → 라우트 → 조회·변경 → 배치), 격자는 열 260·행 180·크기 `[170, 64]`.
+- 첫 architecture 는 컴포넌트 그래프(`docs/architecture/components.json`)의 implemented 컴포넌트에서 노드를 만든다. 열은 그래프 간선의 의존 방향을 따르고, 격자는 열 260·행 180·크기 `[170, 64]`.
 - `external` 이 아닌 모든 노드에 `sources` 를 적는다. 파일·행 범위는 **Read 해서 확인한 것만.** 추측 금지. 샘플 데이터가 있으면 `label: "샘플"` 항목으로 가리킨다.
 - `meta.repository` 는 `git remote get-url origin` 과 `git rev-parse HEAD`. 가리키는 파일은 그 커밋에 있어야 한다 — 새 파일이면 코드를 먼저 커밋한다.
 - `meta.views` 로 챕터 2~5개.

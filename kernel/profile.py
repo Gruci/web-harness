@@ -23,10 +23,10 @@ PROFILE_FILE = "harness_profile.py"
 
 _CHECK_PATH_KEYS = ("ui", "ui_admin", "ui_tokens", "tests", "routes", "schema")
 _FILE_KEYS = ("settings", "ssl_util")
-_SYMBOL_KEYS = ("db_accessor", "db_accessor_module", "ssl_bypass", "error_response")
+_SYMBOL_KEYS = ("ssl_bypass", "error_response")
 _VOCAB_KEYS = ("ui_denylist", "abbrev_prefixes", "abbrev_names")
 _ALLOWLIST_KEYS = ("py_any", "ui_hex", "ui_fetch", "ui_fetch_wrappers", "env_access",
-                   "ui_platform", "sql_ident")
+                   "ui_platform")
 _MD_KEYS = ("doc_exclude", "ref_exclude", "style_exclude", "date_exempt")
 
 
@@ -55,15 +55,18 @@ _KNOWN_NAMES = frozenset({
     "LINTERS", "CHECK_PATHS", "FILES", "SYMBOLS", "VOCAB", "ALLOWLIST", "MD", "SCOPE", "HUBS",
     "HUB_DOMAIN_MD_IMPLICIT", "DOC_SYNC", "BEHAVIOR_TESTED_ROOTS", "LOCAL_GATES", "HARNESS_MAP",
     "ROOT_FILES", "LEGACY_PATHS", "LESSONS_DOC", "AGENT_MODEL_POLICY", "MAINTENANCE",
-    "VERSIONED_PROMPTS", "UI_COPY", "HARNESS_SELF", "HARNESS_ASSETS", "PRESET_SUMMARY",
+    "VERSIONED_PROMPTS", "UI_COPY", "HARNESS_SELF", "PRESET_SUMMARY",
     "PRESET_FITS", "PROFILE_SCHEMA", "UI_NPM_DIR", "COMPONENT_GRAPH",
 })
 _STR_NAMES = ("STAGE", "LANG", "ARCH", "SYNTAX", "HARNESS_MAP", "LESSONS_DOC", "UI_NPM_DIR", "COMPONENT_GRAPH")
 _DICT_NAMES = ("CHECK_PATHS", "FILES", "SYMBOLS", "VOCAB", "ALLOWLIST", "MD", "SCOPE", "PATTERNS",
                "NOT_APPLICABLE", "AGENT_MODEL_POLICY", "MAINTENANCE", "UI_COPY")
 _SEQ_NAMES = ("HUBS", "DOC_SYNC", "BEHAVIOR_TESTED_ROOTS", "LOCAL_GATES", "ROOT_FILES",
-              "SOURCE_EXT", "UI_EXT", "LINTERS", "LEGACY_PATHS", "VERSIONED_PROMPTS",
-              "HARNESS_ASSETS")
+              "SOURCE_EXT", "UI_EXT", "LINTERS", "LEGACY_PATHS", "VERSIONED_PROMPTS")
+# 읽는 곳이 없어 폐기한 설정. 모르는 이름 오류 대신 "지워도 된다"고 알린다 — 오타가 아니라 이전 판의 흔적이다.
+_RETIRED_NAMES = frozenset({"HARNESS_ASSETS"})
+_RETIRED_SUB_KEYS = frozenset({("SYMBOLS", "db_accessor"), ("SYMBOLS", "db_accessor_module"),
+                               ("ALLOWLIST", "sql_ident")})
 _SUB_KEYS = {
     "CHECK_PATHS": _CHECK_PATH_KEYS, "FILES": _FILE_KEYS, "SYMBOLS": _SYMBOL_KEYS, "VOCAB": _VOCAB_KEYS,
     "ALLOWLIST": _ALLOWLIST_KEYS, "MD": _MD_KEYS, "SCOPE": ("exclude_all", "exclude_scratch"),
@@ -82,7 +85,9 @@ def _shape_errors(mod: Any) -> list[str]:
         return [f"{PROFILE_FILE}: PROFILE_SCHEMA = 3 프로파일과 컴포넌트 그래프를 먼저 구성하라"]
     found: list[str] = []
     for name in vars(mod):
-        if name.isupper() and len(name) > 1 and name not in _KNOWN_NAMES:
+        if name in _RETIRED_NAMES:
+            found.append(f"{PROFILE_FILE}: {name} 은 4.0.1 에서 폐기됐다 — 읽는 곳이 없으니 지운다")
+        elif name.isupper() and len(name) > 1 and name not in _KNOWN_NAMES:
             found.append(f"{PROFILE_FILE}: 모르는 설정 이름 {name} — 오타면 그 설정은 조용히 무시된다")
     for name in _STR_NAMES:
         value = getattr(mod, name, None)
@@ -91,10 +96,8 @@ def _shape_errors(mod: Any) -> list[str]:
     schema = getattr(mod, "PROFILE_SCHEMA", None)
     if getattr(mod, "COMPONENT_GRAPH", "docs/architecture/components.json") != "docs/architecture/components.json":
         found.append(f"{PROFILE_FILE}: COMPONENT_GRAPH must be docs/architecture/components.json")
-    if schema != 3:
+    if schema != 3 or isinstance(schema, bool):
         found.append(f"{PROFILE_FILE}: 서식 {schema!r} 실행 불가 — PROFILE_SCHEMA = 3으로 명시적으로 이전하라")
-    if schema is not None and (isinstance(schema, bool) or not isinstance(schema, int)):
-        found.append(f"{PROFILE_FILE}: PROFILE_SCHEMA 는 정수여야 한다 — {type(schema).__name__}")
     for name in _DICT_NAMES:
         value = getattr(mod, name, None)
         if value is not None and not isinstance(value, dict):
@@ -108,7 +111,9 @@ def _shape_errors(mod: Any) -> list[str]:
         if not isinstance(mapping, dict):
             continue
         for key, value in mapping.items():
-            if key not in keys:
+            if (name, key) in _RETIRED_SUB_KEYS:
+                found.append(f"{PROFILE_FILE}: {name}[{key!r}] 는 4.0.1 에서 폐기됐다 — 읽는 곳이 없으니 지운다")
+            elif key not in keys:
                 found.append(f"{PROFILE_FILE}: {name}[{key!r}] 는 모르는 키다 — 쓸 수 있는 것: {' '.join(keys)}")
             elif name in _SEQ_VALUED and value is not None and not _is_seq(value):
                 found.append(f"{PROFILE_FILE}: {name}[{key!r}] 는 튜플이어야 한다 — 문자열 하나면 글자 단위로 쪼개져 검사가 헛돈다")
@@ -157,12 +162,8 @@ VOCAB = _mapping("VOCAB", _VOCAB_KEYS, ())
 ALLOWLIST = _mapping("ALLOWLIST", _ALLOWLIST_KEYS, ())
 MD = _mapping("MD", _MD_KEYS, ())
 
-SCOPE = {
-    "exclude_all": tuple(_dict("SCOPE").get("exclude_all", ()))
-    if _is_seq(_dict("SCOPE").get("exclude_all", ())) else (),
-    "exclude_scratch": tuple(_dict("SCOPE").get("exclude_scratch", ()))
-    if _is_seq(_dict("SCOPE").get("exclude_scratch", ())) else (),
-}
+SCOPE = {key: tuple(value) if _is_seq(value := _dict("SCOPE").get(key, ())) else ()
+         for key in ("exclude_all", "exclude_scratch")}
 HUBS: tuple[str, ...] = _seq("HUBS")
 HUB_DOMAIN_MD_IMPLICIT: bool = getattr(_MOD, "HUB_DOMAIN_MD_IMPLICIT", True) if _MOD else True
 DOC_SYNC: list[dict[str, Any]] = list(_seq("DOC_SYNC"))

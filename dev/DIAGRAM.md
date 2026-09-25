@@ -18,13 +18,13 @@
 
 | 타입 | 하네스 용례 | 노드 컬렉션 |
 |:--|:--|:--|
-| `architecture` | 레이어·도메인 패키지 지도. 프로젝트마다 최소 한 장 | `components` |
+| `architecture` | 컴포넌트 지도. 프로젝트마다 최소 한 장 | `components` |
 | `workflow` | 훅 발화 순서·배치 파이프라인·승인 흐름. 가이드 뷰로 재생한다 | `nodes` |
 | `sequence` | 요청 한 번의 여정 — 화면 → 라우트 → 조회 → 응답 | `participants` |
 | `dataflow` | 수집 → 가공 → 적재 파이프라인과 소비처 | `nodes` |
 | `lifecycle` | 상태기계 — 과업·worktree·주문의 상태 전이 | `states` |
 
-**입도는 레이어와 도메인 패키지다.** 파일·함수 단위는 그리지 않는다. 패키지가 하나 늘면 노드 하나, 의존이 하나 늘면 엣지 하나 — 그래서 "그림만 고치면 된다"가 성립한다. 좌표를 사람이 정하는 엔진이라 노드가 늘수록 배치 비용이 커지고, 입도 규칙이 그 상한이다.
+**입도는 컴포넌트다.** 파일·함수 단위는 그리지 않는다. 컴포넌트가 하나 늘면 노드 하나, 의존이 하나 늘면 엣지 하나 — 그래서 "그림만 고치면 된다"가 성립한다. 좌표를 사람이 정하는 엔진이라 노드가 늘수록 배치 비용이 커지고, 입도 규칙이 그 상한이다.
 
 ## 파일 규약
 
@@ -46,7 +46,7 @@ docs/architecture/
 
 ```json
 { "id": "runner", "type": "backend", "label": "러너", "sublabel": "kernel/runner.py",
-  "sources": [ { "path": "kernel/runner.py", "line": 362, "end_line": 400, "label": "main" } ] }
+  "sources": [ { "path": "kernel/runner.py", "line": 367, "end_line": 400, "label": "main" } ] }
 ```
 
 - `meta.repository` 에 `url`(origin) 과 `revision`(40자 커밋) 을 적는다. 엔진이 그 커밋의 blob 과 행 수로 검증하므로 **아직 커밋 안 된 파일은 가리킬 수 없다.** 순서는 코드 커밋 → deliver → 그림 커밋이다.
@@ -61,7 +61,7 @@ docs/architecture/
 | 판정 | 근거 | 등급 |
 |:--|:--|:--|
 | 면제 아닌 노드마다 `sources` 1개 이상 | 코드 어디인지 모르는 상자는 산문이다 | FAIL |
-| 실존하는 레이어 경로·도메인 패키지마다 그 경로를 가리키는 노드 (architecture) | 검사 21 의 패키지 집합 ↔ 그림 커버리지 | FAIL |
+| implemented 컴포넌트마다 그 root 를 가리키는 노드 (architecture) | 컴포넌트 그래프의 implemented 집합 ↔ 그림 커버리지. planned 는 제외 | FAIL |
 | 모든 `path` 가 작업 트리에 실존, 행 범위가 파일 안 | 이름 바꾸고 안 고침 | FAIL |
 | `revision` 이 이 레포의 커밋 | 남의 커밋 | FAIL |
 | 영수증 해시 = 현재 정본, HTML 실존 | 렌더 안 한 정본 | FAIL |
@@ -72,7 +72,7 @@ greenfield 에서 그림이 없으면 `[SKIP] 아직 없음` 이다. growing 이
 
 ## 델타 — 구조가 바뀌는 plan
 
-레이어·도메인 패키지·의존 방향이 바뀌는 과업은 plan 에 아키텍처 델타를 적는다. 정본을 먼저 고치고 `python -X utf8 -m kernel.diagram compare <base.json> <head.json> docs/tasks/arch_delta.html` 로 before·delta·after 를 만든다. base 는 `git show HEAD:docs/architecture/<이름>.architecture.json` 을 스크래치에 받은 것이다. 승인자는 코드가 아니라 그림으로 "이 변경이 구조를 어디로 미는가"를 본다. 완료 시 델타 HTML 은 research·plan 과 같은 archive 폴더로 간다. 안 바뀌면 "미발동" 한 줄이다.
+컴포넌트·의존 방향이 바뀌는 과업은 plan 에 아키텍처 델타를 적는다. 정본을 먼저 고치고 `python -X utf8 -m kernel.diagram compare <base.json> <head.json> docs/tasks/arch_delta.html` 로 before·delta·after 를 만든다. base 는 `git show HEAD:docs/architecture/<이름>.architecture.json` 을 스크래치에 받은 것이다. 승인자는 코드가 아니라 그림으로 "이 변경이 구조를 어디로 미는가"를 본다. 완료 시 델타 HTML 은 research·plan 과 같은 archive 폴더로 간다. 안 바뀌면 "미발동" 한 줄이다.
 
 ## 뷰어가 이미 하는 것 — 작성 비용 0
 

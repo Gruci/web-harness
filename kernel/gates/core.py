@@ -22,12 +22,10 @@ import re
 from pathlib import Path
 
 from kernel import profile
-from kernel.context import READ_ENC, ROOT, _rel
+from kernel.context import READ_ENC, _rel
 
 MAX_LINES = 400
 MAX_FUNC_LINES = 80   # 파일 400줄 상한이 못 보는 축 — "한 파일에 400줄 함수 하나"를 막는다
-
-ANY_HINT = re.compile(r"[:\[,]\s*Any\b|->\s*Any\b")
 
 # 공급자별 실키 형태. 문자열이 이 모양이면 그건 예시가 아니라 진짜다.
 SECRET_TOKEN = re.compile(
@@ -226,8 +224,8 @@ def check_py_any(files: list[Path]) -> list[str]:
     """
     allow = tuple(profile.ALLOWLIST["py_any"])
     tests = profile.layer("tests")
-    # 커널 자신은 늘 제외 — 게이트 설명 문자열이 자기 패턴에 걸린다.
-    exempt = profile.scratch() + ("kernel/",) + ((tests,) if tests else ())
+    # 커널 자신은 러너의 대상 수집(`is_harness_own`)에서 이미 빠진다.
+    exempt = profile.scratch() + ((tests,) if tests else ())
     pattern = profile.pattern("any_type")
     if not pattern:
         return []
@@ -252,10 +250,10 @@ def check_type_hints(files: list[Path]) -> list[str]:
     """공개 함수의 파라미터·반환 타입힌트. 경계면을 읽는 사람이 본문을 안 읽어도 되게 한다.
 
     `_` 로 시작하는 내부 함수는 제외한다 — 규칙의 목적이 모듈 경계면이기 때문이다.
-    테스트와 커널 자신도 제외한다.
+    테스트도 제외한다. 커널 자신은 러너의 대상 수집에서 이미 빠진다.
     """
     tests = profile.layer("tests")
-    exempt = profile.scratch() + ("kernel/", "profiles/") + ((tests,) if tests else ())
+    exempt = profile.scratch() + ((tests,) if tests else ())
     bad: list[str] = []
     for f in files:
         rel = _rel(f)
@@ -286,8 +284,6 @@ def check_secrets(files: list[Path]) -> list[str]:
     bad: list[str] = []
     for f in files:
         rel = _rel(f)
-        if rel.startswith(("kernel/", "profiles/")):
-            continue                     # 게이트 자신의 패턴 정의가 자기검출된다
         for i, line in enumerate(f.read_text(encoding=READ_ENC).splitlines(), 1):
             if SECRET_TOKEN.search(line):
                 bad.append(f"{rel}:{i}: 시크릿 토큰 하드코딩 — 설정 모듈 경유로 옮기고, "

@@ -38,6 +38,52 @@ def _rel(f: Path) -> str:
     return rel
 
 
+def read_list(path: Path) -> set[str]:
+    """한 줄 한 항목 목록 파일(baseline·허용 목록). `#` 뒤는 주석이다. 파일이 없으면 빈 집합."""
+    if not path.exists():
+        return set()
+    return {token for line in path.read_text(encoding=READ_ENC).splitlines()
+            if (token := line.split("#", 1)[0].strip())}
+
+
+def read_pairs(path: Path) -> set[tuple[str, str]]:
+    """`<키>\\t<값>` 목록 파일. `#` 로 시작하는 줄과 값 없는 줄은 건너뛴다. 파일이 없으면 빈 집합."""
+    if not path.exists():
+        return set()
+    pairs: set[tuple[str, str]] = set()
+    for line in path.read_text(encoding=READ_ENC).splitlines():
+        if line.lstrip().startswith("#"):
+            continue
+        key, _tab, value = line.partition("\t")
+        if value.strip():
+            pairs.add((key.strip(), value.strip()))
+    return pairs
+
+
+def git_output(*args: str) -> str | None:
+    """git 표준출력. 실패·예외면 None."""
+    try:
+        done = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return done.stdout if done.returncode == 0 else None
+
+
+def default_branch() -> str | None:
+    """원격 기본 브랜치 이름. `origin/HEAD` → 실패 시 main·master 실물 순.
+
+    훅 쪽 `_hookio.default_branch` 와 판정이 같다. 훅은 커널 로드 실패에도 살아야 해서 한 벌을 따로 둔다.
+    """
+    head = git_output("symbolic-ref", "--quiet", "refs/remotes/origin/HEAD")
+    if head and head.strip():
+        return head.strip().rsplit("/", 1)[-1]
+    for name in ("main", "master"):
+        if git_output("show-ref", "--verify", "--quiet", f"refs/remotes/origin/{name}") is not None:
+            return name
+    return None
+
+
 def _ls_files(*patterns: str) -> list[str]:
     out = subprocess.run(
         ["git", "ls-files", *patterns], cwd=ROOT, capture_output=True, text=True

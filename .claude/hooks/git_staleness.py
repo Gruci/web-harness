@@ -23,12 +23,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _hookio import default_branch  # noqa: E402
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 # 보드는 공유 체크아웃 한 곳이다 — 자기 트리로 잡으면 세션 수만큼 갈라진다
 # (`kernel.workboard.board_dir`). 커널을 못 읽으면 보드 주입만 접고 stale 감시는 계속한다.
 try:
-    from kernel.workboard import board_dir  # noqa: E402
+    from kernel.workboard import board_dir, task_files  # noqa: E402
     BOARD_DIR: Path | None = board_dir()
 except Exception:
     BOARD_DIR = None
@@ -47,17 +50,6 @@ def _git(*args: str, timeout: int = 5) -> str | None:
     return done.stdout.strip() if done.returncode == 0 else None
 
 
-def _default_branch() -> str | None:
-    """origin/HEAD → 브랜치명. 미설정 클론이면 main/master 중 origin에 실존하는 쪽."""
-    ref = _git("rev-parse", "--abbrev-ref", "origin/HEAD")
-    if ref and "/" in ref:
-        return ref.rsplit("/", 1)[-1]
-    for candidate in ("main", "master"):
-        if _git("rev-parse", "--verify", "--quiet", f"origin/{candidate}") is not None:
-            return candidate
-    return None
-
-
 def _field(text: str, name: str) -> str:
     """workboard 파일에서 `- <name>: <값>` 한 줄. 없으면 빈 문자열."""
     for line in text.splitlines():
@@ -69,16 +61,10 @@ def _field(text: str, name: str) -> str:
 
 def print_open_tasks() -> None:
     """열린 과업 한 줄 요약 — 착수 전 확인을 세션 기억에 안 맡긴다."""
-    if BOARD_DIR is None or not BOARD_DIR.is_dir():
+    if BOARD_DIR is None:
         return
     rows = []
-    for path in sorted(BOARD_DIR.glob("*.md")):
-        if path.name == "README.md":
-            continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except OSError:
-            continue
+    for path, text in task_files(BOARD_DIR):
         state = _field(text, "상태") or "?"
         task = _field(text, "과업")
         rows.append(f"  {path.stem} [{state}] {task}")
@@ -92,7 +78,7 @@ def print_open_tasks() -> None:
 
 def main() -> None:
     print_open_tasks()
-    branch = _default_branch()
+    branch = default_branch()
     if branch is None or _git("rev-parse", "--abbrev-ref", "HEAD") != branch:
         return   # 원격 미설정이거나 worktree 세션 — 자기 브랜치가 정본이라 검사 대상이 아니다
     if _git("fetch", "origin", "--quiet", timeout=_FETCH_TIMEOUT_SEC) is None:

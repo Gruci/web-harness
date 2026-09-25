@@ -1,4 +1,4 @@
-"""static_check_md_style.py — 게이트 ⑬ MD 작성 규칙 (dev/MD_STANDARD.md 의 기계 검사 가능 부분).
+"""kernel/gates/md_style.py — 검사 25 MD 작성 규칙 (dev/MD_STANDARD.md 의 기계 검사 가능 부분).
 
 의미 단위 판정 자체는 자동화 불가 — 여기는 '의미 뭉개짐의 구조적 신호'만 검출한다.
 길이는 규칙이 아니다(의미가 하나면 길어도 된다). 규칙은 "한 줄에 독립 사실이 여럿인가"다.
@@ -18,7 +18,7 @@ import re
 from pathlib import Path
 
 from kernel import profile
-from kernel.context import READ_ENC, ROOT, _rel
+from kernel.context import READ_ENC, ROOT, _rel, read_list
 
 BASELINE_FILE = "md_style_baseline.txt"
 
@@ -51,18 +51,6 @@ def style_target(rel: str) -> bool:
     if not rel.endswith(".md"):
         return False
     return not (exclude and (rel.startswith(exclude) or rel in exclude))
-
-
-def _load_baseline() -> set[str]:
-    path = ROOT / BASELINE_FILE
-    if not path.exists():
-        return set()
-    entries: set[str] = set()
-    for raw in path.read_text(encoding=READ_ENC).splitlines():
-        token = raw.split("#", 1)[0].strip()
-        if token:
-            entries.add(token)
-    return entries
 
 
 def _paren_depth(line: str) -> int:
@@ -144,7 +132,7 @@ def _scan_lines(rel: str, lines: list[str], hard: list[str], soft: list[str]) ->
 
 def check_md_style(files: list[Path]) -> tuple[list[str], list[str]]:
     """반환 (강제 위반, 리포트). baseline 등재 파일의 강제 위반은 리포트로 강등한다."""
-    baseline = _load_baseline()
+    baseline = read_list(ROOT / BASELINE_FILE)
     hard: list[str] = []
     soft: list[str] = []
     for path in files:

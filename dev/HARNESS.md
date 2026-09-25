@@ -70,7 +70,9 @@ Codex patch의 모든 추가·수정·이동 대상은 payload의 작업 디렉�
 ## Claude 훅 실행 순서
 
 세션 시작부터 종료까지 시간순이다. **차단**은 exit 2 로 진행을 멈추고 모델에게 피드백을 준다.
-**경고**는 exit 1 로 같은 메시지를 내보내되 멈추지 않는다 — 어느 쪽을 쓰는지는 아래 「단계」가 정한다.
+**경고**는 exit 1 로 같은 메시지를 stderr 에 내되 멈추지 않는다. 그 stderr 는 사용자 화면에만 뜨고
+모델은 읽지 않는다(Stop·PreToolUse·PostToolUse 공통) — 경고는 사용자 고지 수단이다.
+어느 쪽을 쓰는지는 아래 「단계」가 정한다.
 
 | # | 이벤트 | 훅 | 조건 | 결과 |
 |---|--------|----|------|------|
@@ -87,9 +89,9 @@ Codex patch의 모든 추가·수정·이동 대상은 payload의 작업 디렉�
 | ⑧-2 | PreToolUse(EnterWorktree·Bash·PowerShell) | `check_worktree_name.py` | 새 worktree 이름에 `--<sid8>` 접미 없음 | **차단** |
 | ⑧-2 | 〃 | `check_worktree_name.py` | worktree 이름 앞부분이 내 workboard 범위와 다름 (내 보드 파일 있을 때만) | **차단** |
 | ⑧-4 | PreToolUse(Workflow) | `check_workflow_script.py` | 스크립트의 `agent()` 에 model 미지정 | **차단** |
-| ⑧-5 | PreToolUse(Edit·Write) | `check_workboard_overlap.py` | 다른 과업의 `손대는 곳` 글로브에 걸리는 파일을 편집 | 경고 (추론) |
-| ⑨ | PostToolUse(Edit·Write) | `check_file_rules.py` | 저장한 파일이 게이트 위반 | **차단** |
-| ⑩ | PostToolUse(Edit·Write) | `impeccable/scripts/hook.mjs` | 항상 | 통과 (UI 리마인더) |
+| ⑧-5 | PreToolUse(Edit·Write·MultiEdit·NotebookEdit) | `check_workboard_overlap.py` | 다른 과업의 `손대는 곳` 글로브에 걸리는 파일을 편집 | 경고 (추론) — exit 0 JSON. `systemMessage` 로 사용자에게, `additionalContext` 로 모델에게 넘긴다. 후자는 문서화된 필드지만 실측 확인은 아직이다 |
+| ⑨ | PostToolUse(Edit·Write·MultiEdit) | `check_file_rules.py` | 저장한 파일이 게이트 위반 | **차단** |
+| ⑩ | PostToolUse(Edit·Write·MultiEdit) | `impeccable/scripts/hook.mjs` | 항상 | 통과 (UI 리마인더) |
 | ⑪ | SubagentStop | `check_agent_return.py` | 반환이 임계 초과 | **차단** |
 | ⑫ | Stop | `check_editing_lock.py` | `workboard/` 에 자기 `#sid` 과업 파일이 **머지 후에도** 잔존 (진행 중은 통과) | 경고 (추론) |
 | ⑫-1 | 〃 | `check_editing_lock.py` | 주인 없는 과업 파일 — 머지됐고 브랜치가 origin·로컬 양쪽에 없음 | 경고 (추론) |
@@ -110,11 +112,13 @@ Codex patch의 모든 추가·수정·이동 대상은 payload의 작업 디렉�
 | 단계 | 근거 | 해당 훅 |
 |------|------|---------|
 | **차단**(2) | **직접 관측** — 검사기가 실제로 위반을 뱉었거나 파일이 실제로 거기 있다 | ⑧ ⑧-1 ⑧-2 ⑧-3 ⑧-4 ⑨ ⑪ ⑬ ⑭ ⑯ ⑰ |
-| **경고**(1) | **추론** — git 상태로 "끝났을 것"을 추측하거나, 사람이 적은 글로브로 겹침을 짚거나, LLM 이 문구를 판정한다 | ⑧-5 ⑫ ⑫-1 ⑮ ⑱ |
+| **경고**(1) | **추론** — git 상태로 "끝났을 것"을 추측하거나, 사람이 적은 글로브로 겹침을 짚거나, LLM 이 문구를 판정한다 | ⑫ ⑫-1 ⑮ ⑱ — ⑧-5 는 같은 급이지만 PreToolUse 라 exit 0 JSON 으로 낸다 |
 | **통과**(0) | 판정 불능 · **모델이 지금 고칠 수 없는 조건** | 전부 |
 
 커널 게이트가 "확실한 위반만 잡는다(오탐 0)"로 지키는 선을, 훅에서는 **끄는 대신 단계를 낮춰**
-지킨다. 검출을 끄면 잔해가 안 보이므로 매 턴 말은 하되 문은 안 잠근다.
+지킨다. 검출을 끄면 잔해가 안 보이므로 사용자에게는 매 턴 알리되 문은 안 잠근다. 경고의 stderr 는
+모델에게 닿지 않으므로, 모델이 읽어야만 하는 조건이라면 경고가 아니라 차단이어야 한다 — 그리고
+추론 판정에는 차단 권한을 주지 않는다. 이 둘 사이가 경고 훅의 자리다.
 
 근거는 추론 계열 둘이 연달아 오판한 것이다(`dev/LESSONS.md` §19). ⑫ 는 진행 중 보드 행을 막아
 세션을 잠갔고, ⑮ 는 갓 판 worktree 를 "머지 완료"로 뒤집어 **작업 중인 판을 지우라고** 요구했다.
@@ -152,6 +156,8 @@ Codex patch의 모든 추가·수정·이동 대상은 payload의 작업 디렉�
 항상 덜 중요하다. 같은 세션의 같은 차단은 한 번만 쌓인다. Stop 훅은 턴마다 발화해서, 안 그러면
 위반 하나가 다섯 줄이 되어 빈도 집계가 통째로 거짓이 된다.
 ⑦ 은 배선하지 않았다. 게이트가 아니라 세션 위생 경고라 게이트 조정의 근거가 되지 않는다.
+훅은 기록을 `_hookio.record` 로 남긴다. 커널을 못 읽어도 예외를 내지 않는 위임이다.
+훅 출력의 UTF-8 설정도 `_hookio` 가 임포트될 때 한 번 한다. `--upgrade` 는 `settings.json` 의 옛 `python …` 명령을 그대로 두므로 설정의 `-X utf8` 에 기대지 않는다. 새 훅은 `_hookio` 를 임포트한다.
 
 ⑤⑥ 만 `startup` matcher 로 분리돼 있다. `/clear` 와 compact 마다 `git pull` 과 정비 판정이
 다시 도는 것을 막기 위해서다.
@@ -226,6 +232,9 @@ Codex patch의 모든 추가·수정·이동 대상은 payload의 작업 디렉�
 | 48 | 아키텍처 그림 1:1 대조 | `arch_diagram` · `arch_diagram_engine:<파일>` | 코드 어디인지 증명 안 된 노드, 이름 바꾸고 안 고친 그림, 렌더 안 한 정본. 엔진 위임분은 영수증 해시가 정본과 같으면 재호출 없이 OK, 아니면 node 없을 때 `[TOOL]` — 통과가 아니다. 전량 모드 전용(34·35 와 같다). 정본은 `dev/DIAGRAM.md` |
 
 문서↔코드 대조(`doc_sync`)는 프로파일의 `DOC_SYNC` 가 정의한 만큼 늘어난다.
+
+언어팩이 선언한 린터는 `정적 분석(<slug>)` 섹션(`lint:<slug>`)으로 찍힌다. 도구가 없으면 `[TOOL]` 이고,
+레포 전체를 보는 도구라 `--file` 모드에선 돌지 않는다. 정본은 `kernel/linters.py` 다.
 
 이 레포 전용 게이트는 `harness_gates/<이름>.py` 에 두고 `LOCAL_GATES` 로 켠다. 번호 표에는
 넣지 않는다 — 그 표의 정본은 `kernel/gates/` 다.
@@ -348,8 +357,8 @@ LANG을 선택하기 전에는 소스 확장자와 구문 분석을 임의로 Py
 | 팩 | 뜻 | `[N/A]` 로 도는 것 |
 |----|----|----|
 | `web_layered` | 화면+서버 풀스택 | 없음 — 전 게이트 성립 |
-| `backend_only` | 서버는 있고 화면이 없다 | 화면 게이트 7종 |
-| `headless` | 웹도 화면도 없다 — 배치·CLI·라이브러리 | 화면 7종 + 웹 2종 |
+| `backend_only` | 서버는 있고 화면이 없다 | 화면 게이트 7종 — 6·10·17~20·24 |
+| `headless` | 웹도 화면도 없다 — 배치·CLI·라이브러리 | 위 7종 + 웹 2종(13·16). 31·42~44 는 어느 팩에도 없어 화면 경로가 비면 `[SKIP]` 으로 찍힌다 |
 
 - 로더는 `kernel/arch.py`. 같은 이름을 `profiles/arch/<이름>.py` 에 두면 프로젝트 것이 이긴다.
 - `ARCH` 미선언이면 아무것도 `[N/A]` 로 돌리지 않는다 — 도입 전 프로파일의 동작 그대로다.

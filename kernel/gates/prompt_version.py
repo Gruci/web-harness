@@ -10,40 +10,20 @@
 from __future__ import annotations
 
 import re
-import subprocess
 
 from kernel import profile
-from kernel.context import READ_ENC, ROOT
+from kernel.context import READ_ENC, ROOT, default_branch, git_output as _git
 
 _VERSION = re.compile(r"V(\d+)\.(\d+)")
 
 
-def _git(*args: str) -> str | None:
-    try:
-        done = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True,
-                              encoding="utf-8", errors="replace", timeout=10)
-    except Exception:
-        return None
-    return done.stdout if done.returncode == 0 else None
-
-
-def _default_branch() -> str | None:
-    head = _git("symbolic-ref", "--quiet", "refs/remotes/origin/HEAD")
-    if head and head.strip():
-        return head.strip().rsplit("/", 1)[-1]
-    for name in ("main", "master"):
-        if _git("show-ref", "--verify", "--quiet", f"refs/remotes/origin/{name}") is not None:
-            return name
-    return None
-
-
 def ready() -> bool:
     """원격 기본 브랜치를 알 수 있는가 — 없으면 비교 기준이 없어 [SKIP] 이 정직하다."""
-    return _default_branch() is not None
+    return default_branch() is not None
 
 
 def check_prompt_version() -> list[str]:
-    base = _default_branch()
+    base = default_branch()
     if base is None:
         return []
     bad: list[str] = []

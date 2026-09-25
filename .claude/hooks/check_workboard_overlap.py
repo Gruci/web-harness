@@ -19,17 +19,12 @@ worktree 는 **파일 충돌**만 막는다. 두 세션이 서로 다른 파일�
 
 파일명(= 범위 이름)으로 가르면 범위 이름을 바꾼 순간 자기 과업을 남의 것으로 경고한다.
 """
+import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _hookio import read_hook_payload  # noqa: E402
-
-# Windows 기본 cp949 → 하네스(utf-8)에서 한글 깨짐 방지
-try:
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
+from _hookio import read_hook_payload, record  # noqa: E402
 
 # ⚠️ ROOT 는 **자기 worktree 루트**다(보드와 다른 자리). 편집 대상 파일을 상대경로로 바꿔
 #    글로브와 맞대는 용도라, 공유 체크아웃으로 잡으면 worktree 안 파일이 전부 `relative_to`
@@ -40,19 +35,13 @@ sys.path.insert(0, str(ROOT))
 
 # 판정 정본은 kernel/workboard.py — 커널을 못 읽으면 fail-open: 경고 훅이 편집을 막지 않는다.
 try:
-    from kernel.workboard import board_dir, overlaps as _overlaps, touch_globs  # noqa: E402,F401
+    from kernel.workboard import board_dir, overlaps as _overlaps  # noqa: E402
 except Exception:
     sys.exit(0)
 
 # 보드는 **공유 체크아웃 한 곳**이다 — 훅 파일이 worktree 마다 복제되므로 자기 트리로
 # 잡으면 보드가 세션 수만큼 갈라진다(`kernel.workboard.board_dir` 헤더).
 BOARD_DIR = board_dir()
-
-# 알릴 때마다 관찰을 남긴다 — 회고가 읽을 데이터다. 기록이 실패해도 판정은 계속돼야 한다.
-try:
-    from kernel.trace import record
-except Exception:
-    def record(*_args: object, **_kwargs: object) -> None: ...
 
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 
@@ -87,12 +76,16 @@ def main() -> None:
         sys.exit(0)
 
     record("check_workboard_overlap", "workboard_overlap", sid=sid8, msg=f"{len(hits)}건 {target.name}")
-    print(f"[WORKBOARD] 다른 과업이 잡은 곳이다 — {target.name}", file=sys.stderr)
-    for hit in hits:
-        print(f"  {hit}", file=sys.stderr)
-    print("같은 화면이면 그 세션에 합류하거나(항목 추가) 그 브랜치 위에서 쌓는다.", file=sys.stderr)
-    print("겹치는 줄이 아니면 그대로 진행해도 된다 — 경고이지 차단이 아니다.", file=sys.stderr)
-    sys.exit(1)
+    message = "\n".join([f"[WORKBOARD] 다른 과업이 잡은 곳이다 — {target.name}",
+                         *(f"  {hit}" for hit in hits),
+                         "같은 화면이면 그 세션에 합류하거나(항목 추가) 그 브랜치 위에서 쌓는다.",
+                         "겹치는 줄이 아니면 그대로 진행해도 된다 — 경고이지 차단이 아니다."])
+    # exit 1 의 stderr 는 모델에 닿지 않는다(훅 문서). exit 0 JSON 으로 모델(additionalContext)과
+    # 사용자(systemMessage) 양쪽에 싣는다 — 편집은 그대로 진행된다.
+    print(json.dumps({"systemMessage": message,
+                      "hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": message}},
+                     ensure_ascii=False))
+    sys.exit(0)
 
 
 if __name__ == "__main__":

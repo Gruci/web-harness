@@ -35,27 +35,20 @@ import sys
 from pathlib import Path, PurePosixPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _hookio import read_hook_payload  # noqa: E402
-
-# Windows 기본 cp949 → 하네스(utf-8)에서 한글 깨짐 방지
-try:
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
+from _hookio import read_hook_payload, record, segments  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 # 보드는 공유 체크아웃 한 곳이다(`kernel.workboard.board_dir`). 커널을 못 읽으면 범위 일치
 # 검사만 접는다 — 이름·자리 검사는 보드 없이도 성립한다.
 try:
-    from kernel.workboard import board_dir  # noqa: E402
+    from kernel.workboard import board_dir, task_files  # noqa: E402
     BOARD_DIR: Path | None = board_dir()
 except Exception:
     BOARD_DIR = None
 
 SID_LEN = 8
 WORKTREE_ADD = re.compile(r"\bgit\b.*\bworktree\s+add\b")
-SEPARATORS = (";", "|", "||", "&&", "&")
 
 
 def session_id8(payload: dict) -> str | None:
@@ -76,17 +69,9 @@ def offending_name(name: str, sid8: str) -> str | None:
 
 def my_scope(sid8: str) -> str | None:
     """내 `#sid` 가 든 workboard 파일의 범위 이름(= 파일 stem). 없으면 None."""
-    if BOARD_DIR is None or not BOARD_DIR.is_dir():
+    if BOARD_DIR is None:
         return None
-    for path in sorted(BOARD_DIR.glob("*.md")):
-        if path.name == "README.md":
-            continue
-        try:
-            if f"#sid:{sid8}" in path.read_text(encoding="utf-8"):
-                return path.stem
-        except OSError:
-            continue
-    return None
+    return next((path.stem for path, text in task_files(BOARD_DIR) if f"#sid:{sid8}" in text), None)
 
 
 def scope_mismatch(name: str, sid8: str) -> str | None:
@@ -137,7 +122,7 @@ def worktree_add_path(command: str) -> str | None:
         tokens = shlex.split(command.replace("\\", "/"), posix=True)
     except ValueError:
         return None
-    for segment in _segments(tokens):
+    for segment in segments(tokens):
         # `git worktree add` 는 조각의 **머리 세 칸**이다. 뒤쪽에 나오면 인자거나 산문이다.
         head = segment[:3]
         if len(head) < 3 or head[1] != "worktree" or head[2] != "add":
@@ -146,23 +131,6 @@ def worktree_add_path(command: str) -> str | None:
             continue                    # 백틱이 붙은 `` `git `` 같은 산문 조각을 배제한다
         return _first_path(segment[3:])
     return None
-
-
-def worktree_add_target(command: str) -> str | None:
-    """`git worktree add` 가 만들려는 경로의 basename. 생성 명령이 아니면 None."""
-    token = worktree_add_path(command)
-    return Path(token).name if token else None
-
-
-def _segments(tokens: list[str]) -> list[list[str]]:
-    """셸 구분자로 끊은 명령 조각들. 각 조각의 첫 토큰이 그 조각의 명령이다."""
-    segments: list[list[str]] = [[]]
-    for token in tokens:
-        if token in SEPARATORS:
-            segments.append([])
-        else:
-            segments[-1].append(token)
-    return [s for s in segments if s]
 
 
 def _first_path(rest: list[str]) -> str | None:
@@ -206,6 +174,7 @@ def main() -> None:
             "(정본: workboard/README.md 작업 격리)",
             file=sys.stderr,
         )
+        record("check_worktree_name", "worktree_name", sid=sid8 or "", msg="EnterWorktree 생성")
         sys.exit(2)
 
     token = worktree_add_path(tool_input.get("command") or "")
@@ -225,6 +194,7 @@ def main() -> None:
             "(정본: workboard/README.md)",
             file=sys.stderr,
         )
+        record("check_worktree_name", "worktree_name", sid=sid8, msg=f"sid 접미 없음 {name}")
         sys.exit(2)
 
     expected = scope_mismatch(name, sid8)
@@ -236,6 +206,7 @@ def main() -> None:
             "(정본: workboard/README.md)",
             file=sys.stderr,
         )
+        record("check_worktree_name", "worktree_name", sid=sid8, msg=f"범위 불일치 {name}")
         sys.exit(2)
 
     misplaced = wrong_location(token)
@@ -246,6 +217,7 @@ def main() -> None:
             "(정본: workboard/README.md 작업 격리)",
             file=sys.stderr,
         )
+        record("check_worktree_name", "worktree_name", sid=sid8, msg=f"자리 규약 밖 {token}")
         sys.exit(2)
 
     sys.exit(0)

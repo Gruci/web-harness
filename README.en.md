@@ -4,7 +4,7 @@
 
 **A guardrail that keeps AI from wrecking your code**
 
-Web development harness v4.0.0
+Web development harness v4.0.1
 
 [한국어](README.md) · [English](README.en.md)
 
@@ -18,7 +18,7 @@ Web development harness v4.0.0
 
 ## At a glance
 
-These are the harness drawn with the harness. Every box carries a real source file and line range, and check 48 compares the diagram against the code on every save and at session end — change the code without fixing the diagram and the session will not end. Clone the repository and open the `.html` of the same name in `docs/architecture/` to click a box and jump to its code, play the guided views, or probe the route between two boxes.
+These are the harness drawn with the harness. Every box carries a real source file and line range, and check 48 compares the diagram against the code at session end and on every full run — change the code without fixing the diagram and the session will not end. Clone the repository and open the `.html` of the same name in `docs/architecture/` to click a box and jump to its code, play the guided views, or probe the route between two boxes.
 
 | Structure — hooks call the kernel; the kernel knows the project only through the profile | Hook firing order — from session start to end |
 |:--|:--|
@@ -110,7 +110,7 @@ Once the session opens, say:
 set up the harness
 ```
 
-Onboarding asks a few questions — at the level of "what do you want to build?", not technology names. Answer whether your service has screens, is API-only, or runs on a schedule, and it handles configuration, GitHub connection, and check activation on its own. It's fine if you haven't chosen a stack — recommending one, with reasons, is the tool's job.
+Onboarding asks a few questions — at the level of "what do you want to build?", not technology names. Answer whether your service has screens, is API-only, or runs on a schedule, and it handles configuration, GitHub connection, and check activation on its own. It's fine if you haven't chosen a stack — the tool explains what changes with each candidate, and you choose.
 
 ### Step 3 — Just develop
 
@@ -187,10 +187,10 @@ Empty its configuration entry and it moves to `[SKIP]`. The resting state is pri
 
 **How do I update the harness itself?**
 `python -X utf8 harness_install.py --check-update` compares your copy with the upstream version without changing it.
-`--upgrade` updates upstream engine, Claude hook, and preset files while preserving files added by the project.
+Once you decide to upgrade, make the working tree clean and run `--upgrade`: it replaces the check engine (`kernel/`), the Claude hooks (`.claude/hooks/`), and the upstream preset files while preserving files added by the project.
 Your configuration, documents, repository-specific checks, and diagrams stay intact.
 The upgrade then checks both agents' wiring.
-Merge missing shared workflows or hook configuration without overwriting project customizations, then rerun the check.
+New entries in settings, skills, or shared workflows are not merged automatically — review `git diff`, copy over only what you need, then rerun the check.
 
 **What do I have to write myself?**
 At install time, nothing. Folder names and framework function names are handled by onboarding. What only you know is your service's domain knowledge, which accumulates in `PROJECT.md` as development progresses.
@@ -273,11 +273,14 @@ Save checks follow the selected source extensions; final checks also include unt
 | A documented file path that doesn't exist | Clean up references left after deletes and renames |
 | Missing type hints on public functions | Specify the module boundary |
 | Agent definition disagreeing with the model policy table | Keeps model assignment aligned with policy |
+| An API built without its screen | To the user the feature does not exist. The screen is part of the unit |
+| A function rebuilt under a new name | Use the existing canonical one, or extract a single shared copy |
+| A constant renamed with one reference missed | It runs, then blows up when that screen is opened. Caught at save time |
 | A single function over 80 lines | The axis the file limit can't see — functions have single responsibility too |
 | Frontend logic or components without a test twin | Type checks and builds can't catch wrong values |
 | New screen copy using internal jargon or slang | Terms outside the denylist get an AI copy review at session end |
 
-Checks run at three moments:
+Once the hooks are wired and trusted in a supported runtime, checks run at these moments:
 
 | When | Target | On violation |
 |:--|:--|:--|
@@ -307,7 +310,8 @@ To install without going through a session:
 ```bash
 python -X utf8 harness_install.py --list                      # List presets
 python -X utf8 harness_install.py --preset _template  # Generate configuration
-# Adjust folder names in harness_profile.py to the real structure, then
+# Set LANG and CHECK_PATHS in harness_profile.py and the component graph to the real structure, then
+python -X utf8 harness_install.py --doctor                    # Are the language pack's external tools installed?
 python -X utf8 harness_install.py                             # Verify configuration and code
 python -X utf8 setup_global_permissions.py                    # Merge global permissions
 ```
@@ -344,18 +348,6 @@ Doing neither 3 nor 4 is itself caught by a check — it means the judgment was 
 
 As a project grows, document drift, over-engineering, and unpaid debt accumulate. The tool measures thresholds from the repository itself, decides when reviews are due, and announces them at session start. They run after your current work finishes, produce reports only, and never touch source. Thresholds are tuned in `MAINTENANCE` in `harness_profile.py`.
 
-### Run several Claudes at once
-
-Run multiple Claude sessions on one project and they'll eventually trample each other's work in the shared folder. This tool ships a collaboration protocol — one isolated working copy (worktree) per session — and enforces it with automatic checks.
-
-- Every new working copy gets the session's identifier stamped into its name, so a single listing shows who is working on what.
-- The moment even one working copy exists, commits and branch switches in the shared folder are blocked automatically — parallel work has begun.
-- Writing source files through shell redirection, or merging while ignoring a check verdict, is stopped before it executes.
-- A session cannot end while a merged working copy is left behind — debris never piles up in the listing.
-- When an approved design splits into three or more non-overlapping tracks, a dedicated conductor AI divides file ownership and drives several AIs in parallel.
-
-Working solo in a single session, all of this stays dormant. It wakes only when parallelism starts.
-
 ### Want to run several Claudes at once?
 
 As a project grows, so does the temptation: give the screens to this session, the API to that one, and let them run side by side. Do it naively and one day it bites — several sessions sharing one working folder, overwriting each other, your code swept into someone else's commit.
@@ -363,16 +355,16 @@ As a project grows, so does the temptation: give the screens to this session, th
 This tool ships a collaboration protocol that was hardened by actually living through those accidents. Each session gets its own isolated working copy, works there, and git merges the results. And as always here — the protocol is kept by **blocking**, not by asking nicely.
 
 - Every working copy gets the session's mark stamped into its name. One listing shows who's doing what right now.
-- The moment even one working copy exists, the shared folder turns read-only automatically. Parallel work has begun.
+- The moment even one working copy exists, commits, staging, branch switches, and merges in the shared folder are blocked automatically. Parallel work has begun.
 - Sneaking source edits past the checks through the shell, or merging before the verdict is in — stopped before it runs.
-- Leave a finished working copy behind and the session won't end. The tool knows "I'll clean up later" never comes.
+- Leave a finished working copy behind and every session exit warns you. It doesn't block — "finished" is an inference. The tool knows "I'll clean up later" never comes.
 - When a design splits into three or more non-overlapping tracks, a dedicated conductor AI divides file ownership and drives several AIs at once.
 
 Working solo in one session? All of this sleeps quietly. It wakes only the moment parallelism starts.
 
 ### AI model division of labor
 
-Model tiers are split by the nature of the work. The assignment itself is checked — if the policy table and the actual assignment disagree, the session won't end.
+Model tiers are split by the nature of the work. The Opus and Fable assignments are checked — each agent definition is compared with the policy table, and a mismatch keeps the session open. Sonnet has no agent definition; it is named only on fan-out calls.
 
 | Model | Handles | Criterion |
 |:--|:--|:--|
@@ -395,7 +387,7 @@ Any line differing from the answer file is reported. Passing this comparison is 
 
 ### Architecture diagrams — a diagram counts only if it is verified
 
-The four diagrams are at the top of this document under "At a glance". `docs/architecture/` holds the source of truth (JSON) and the rendered HTML and SVG for structure, workflow, and sequence diagrams. The rule map is not drawn by hand: `python -X utf8 -m kernel.diagram rules` builds it from the hook wiring and the gate list. Every box carries the real source file and line range, and clicking a box in the viewer opens that code. Check 48 compares the diagram against the repository on every save and at session end — rename a file without fixing the diagram and the session will not end. Design documents that change the structure attach a before/after diagram (delta). The render engine ships inside the repository, so viewers install nothing.
+The four diagrams are at the top of this document under "At a glance". `docs/architecture/` holds the source of truth (JSON) and the rendered HTML and SVG for structure, workflow, and sequence diagrams. The rule map is not drawn by hand: `python -X utf8 -m kernel.diagram rules` builds it from the hook wiring and the gate list. Every box carries the real source file and line range, and clicking a box in the viewer opens that code. Check 48 compares the diagram against the repository at session end and on every full run — rename a file without fixing the diagram and the session will not end. Design documents that change the structure attach a before/after diagram (delta). The render engine ships inside the repository, so viewers install nothing.
 
 ```bash
 python -X utf8 -m kernel.diagram validate architecture docs/architecture/<name>.architecture.json
@@ -408,6 +400,7 @@ python -X utf8 -m kernel.diagram deliver  architecture docs/architecture/<name>.
 
 | Version | Changes |
 |:--|:--|
+| **v4.0.1** | Doc drift fixes after the component-graph switch, hook UTF-8 setup and trace recording consolidated into `_hookio`, residue check no longer passes silently when the kernel fails to load, retired profile keys (`HARNESS_ASSETS`, `SYMBOLS` db_accessor/db_accessor_module, `ALLOWLIST` sql_ident). |
 | **v4.0.0** | Schema 3 component graphs, user decision records, stack-selected assembly, and reliable check outcomes. |
 | **v3.8.0** | Root holds only tool-convention files, and the harness map is checked both ways. Hub documents moved into their home directories — DEVGUIDE and HARNESS to `dev/`, DESIGN_GUIDE to `design/`, BACKLOG to `docs/`; check 28 now also catches map rows whose real file is gone; nested `def` gained a reasoned escape comment. |
 | **v3.7.0** | Task board moved out of git into root `workboard/` — one file per task, edit-time overlap warnings (Claude hook + Codex entrypoint sharing one kernel judgment), worktrees relocated to root `worktrees/` for agent neutrality, EDITING.md renamed to BACKLOG.md. |

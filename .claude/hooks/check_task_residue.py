@@ -35,17 +35,11 @@ import sys
 import time
 from pathlib import Path
 
-# 보드 행 파싱은 `check_editing_lock.py` 가 정본이다 — 주석 블록·헤더 제외 규칙을 재구현하지 않는다.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from check_editing_lock import _active_edit_rows  # noqa: E402
+from _hookio import payload_sid, record  # noqa: E402
 
-# Windows 기본 cp949 → 하네스(utf-8)에서 한글 깨짐 방지
-try:
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
-
-TASK_DIR = Path(__file__).resolve().parents[2] / "docs" / "tasks"
+ROOT = Path(__file__).resolve().parents[2]
+TASK_DIR = ROOT / "docs" / "tasks"
 
 # 갓 만든 산출물의 유예(초) — 계획 단계 세션이 보드 행 없이 작업하는 구간을 덮는다.
 # 하루로 두면 "어제 끝낸 과업의 잔해"가 다음날 첫 세션에서 잡힌다 — 다음 세션의 오독을
@@ -58,8 +52,19 @@ def board_is_busy() -> bool:
 
     `#sid:` 태그가 붙은 행만 센다 — 태그는 과업 등록의 필수 요소이고, 서식을 안 지킨 파일이
     보드를 영구히 '진행 중'으로 만들어 잔존 검사를 영영 못 돌게 하는 것을 막는다.
+
+    보드 판정은 `kernel.workboard` 가 정본이다. 커널을 못 읽으면 보드를 빈 것으로 본다 —
+    차단 훅이 커널 고장에 조용히 꺼지면 안 된다(예전엔 다른 훅 모듈을 임포트하다 그 모듈의
+    최상위 `sys.exit(0)` 에 잔존 검사째 끝났다).
     """
-    return any("#sid:" in row for row in _active_edit_rows())
+    try:
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+        from kernel.workboard import active_rows, board_dir
+        rows = active_rows(board_dir())
+    except Exception:
+        return False
+    return any("#sid:" in row for row in rows)
 
 
 def _is_fresh(path: Path, now: float) -> bool:
@@ -86,6 +91,7 @@ def main() -> None:
     if not leftover:
         sys.exit(0)
 
+    record("check_task_residue", "task_residue", sid=payload_sid(), msg=f"{len(leftover)}건")
     # Stop 훅 차단 사유는 stderr 로 내보내야 Claude 에게 전달된다(stdout 은 무시됨).
     print(f"[TASK RESIDUE] docs/tasks/ 루트에 산출물 {len(leftover)}건이 남아있습니다.", file=sys.stderr)
     for path in leftover:

@@ -151,12 +151,10 @@ def test_workboard_file_is_one_row() -> None:
         board = _fake_board(Path(tmp))
         (board / "issues-quarter.md").write_text(
             "- 과업: fix/quarter #sid:99999999\n- 상태: 진행\n", encoding="utf-8")
-        lock.BOARD_DIR = board
-        rows = lock._active_edit_rows()
+        rows = lock.active_rows(board)
         assert len(rows) == 2, f"README 를 빼고 과업 파일 수만큼 나와야 한다: {rows}"
         assert all("example" not in row for row in rows), "README 를 과업으로 셌다"
-        lock.BOARD_DIR = Path(tmp) / "nope"
-        assert lock._active_edit_rows() == [], "없는 디렉토리는 빈 보드여야 한다"
+        assert lock.active_rows(Path(tmp) / "nope") == [], "없는 디렉토리는 빈 보드여야 한다"
 
 
 def test_branch_comes_from_task_field() -> None:
@@ -164,8 +162,7 @@ def test_branch_comes_from_task_field() -> None:
     import tempfile
     lock = _load("check_editing_lock")
     with tempfile.TemporaryDirectory() as tmp:
-        lock.BOARD_DIR = _fake_board(Path(tmp))
-        (row,) = lock._active_edit_rows()
+        (row,) = lock.active_rows(_fake_board(Path(tmp)))
         assert lock.branch_of(row) == "feat/report-viewers", \
             f"과업 필드가 아니라 다른 데서 집었다: {lock.branch_of(row)}"
 
@@ -174,7 +171,8 @@ def test_workboard_overlap() -> None:
     """겹침 판정 — 내 과업 무경고(소음화 방지) · 남의 과업 경고(방어 사멸 방지) · 무관 파일 무경고."""
     import tempfile
     overlap = _load("check_workboard_overlap")
-    globs = overlap.touch_globs(_TASK)
+    from kernel.workboard import touch_globs
+    globs = touch_globs(_TASK)
     assert globs == ["frontend/src/components/admin/salesStatus/*", "docs/tasks/plan_x.md"], \
         f"다음 필드(- 상태:)를 글로브로 먹었다: {globs}"
     with tempfile.TemporaryDirectory() as tmp:
@@ -235,9 +233,9 @@ def test_worktree_add_only_at_command_head() -> None:
         ("git worktree remove .claude/worktrees/a", "제거"),
     ]
     for command, expected in real:
-        assert naming.worktree_add_target(command) == expected, f"정상 생성을 못 읽었다: {command}"
+        assert Path(naming.worktree_add_path(command) or "").name == expected, f"정상 생성을 못 읽었다: {command}"
     for command, label in prose:
-        assert naming.worktree_add_target(command) is None, f"명령으로 오독: {label}"
+        assert naming.worktree_add_path(command) is None, f"명령으로 오독: {label}"
 
 
 def test_auto_merge() -> None:
@@ -302,15 +300,51 @@ def test_workflow_model_required() -> None:
         ("foo.agent('x')", "남의 객체 메서드 — 호출로 세지 않는다"),
     ]
     for source, expected, label in violating:
-        assert gate.missing_model(source) == expected, f"잘못 잡았다: {label}"
+        assert gate.classify_calls(source)[0] == expected, f"잘못 잡았다: {label}"
     for source, label in passing:
-        assert gate.missing_model(source) == [], f"통과해야 하는데 막음: {label}"
+        assert gate.classify_calls(source)[0] == [], f"통과해야 하는데 막음: {label}"
 
     # 판정 불능은 차단(missing)이 아니라 경고(unknown)로 갈린다.
     missing, unknown = gate.classify_calls("await agent('a', mysteryOpts)")
     assert missing == [] and unknown == [1], "미정의 식별자 opts 는 판정 불능(경고)여야 한다"
     missing, unknown = gate.classify_calls("const O = {label:'x'}\nawait agent('a', O)")
     assert missing == [2] and unknown == [], "정의부에 model 없는 식별자 opts 는 위반이어야 한다"
+
+
+def test_task_residue_survives_kernel_failure() -> None:
+    """커널을 못 읽어도 잔존 검사는 돈다 — 예전엔 다른 훅의 최상위 `sys.exit(0)` 에 통째로 끝났다."""
+    import os
+    import tempfile
+    residue = _load("check_task_residue")
+    saved = sys.modules.get("kernel.workboard")
+    sys.modules["kernel.workboard"] = None         # 이 이름의 임포트가 ImportError 가 된다
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            plan = Path(tmp) / "plan_old.md"
+            plan.write_text("x", encoding="utf-8")
+            os.utime(plan, (0, 0))                 # 유예(24시간)를 넘긴 산출물
+            residue.TASK_DIR = Path(tmp)
+            assert residue.board_is_busy() is False, "커널 실패를 '보드 비었음'으로 보지 않았다"
+            assert residue.residue() == [plan], "커널 실패에 잔존 검사가 꺼졌다"
+    finally:
+        if saved is None:
+            sys.modules.pop("kernel.workboard", None)
+        else:
+            sys.modules["kernel.workboard"] = saved
+
+
+def test_record_never_raises() -> None:
+    """관찰 기록은 커널이 없어도 예외를 안 낸다 — 기록 실패가 차단을 죽이면 안 된다."""
+    hookio = _load("_hookio")
+    saved = sys.modules.get("kernel.trace")
+    sys.modules["kernel.trace"] = None
+    try:
+        hookio.record("test", "kind", sid="00000000", msg="x")
+    finally:
+        if saved is None:
+            sys.modules.pop("kernel.trace", None)
+        else:
+            sys.modules["kernel.trace"] = saved
 
 
 def demo() -> None:
@@ -320,7 +354,8 @@ def demo() -> None:
                   test_workboard_overlap, test_worktree_name_matches_scope,
                   test_worktree_add_only_at_command_head,
                   test_auto_merge, test_task_residue_fresh, test_ui_copy_extract,
-                  test_workflow_model_required):
+                  test_workflow_model_required, test_task_residue_survives_kernel_failure,
+                  test_record_never_raises):
         check()
         print(f"  [OK] {check.__name__}")
     print("훅 행동 테스트 전건 통과")

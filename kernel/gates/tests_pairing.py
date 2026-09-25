@@ -10,16 +10,9 @@ import re
 from pathlib import Path
 
 from kernel import profile
-from kernel.context import READ_ENC, ROOT, _rel
+from kernel.context import READ_ENC, ROOT, _rel, read_list
 
 BASELINE_FILE = ROOT / "test_pairing_baseline.txt"
-
-
-def _load_baseline() -> set[str]:
-    if not BASELINE_FILE.exists():
-        return set()
-    lines = BASELINE_FILE.read_text(encoding=READ_ENC).splitlines()
-    return {ln.strip() for ln in lines if ln.strip() and not ln.strip().startswith("#")}
 
 
 def _test_file_stems() -> list[str]:
@@ -36,7 +29,7 @@ def check_module_test_pairing(py_files: list[Path]) -> list[str]:
     roots = tuple(profile.BEHAVIOR_TESTED_ROOTS)
     if not roots:
         return []
-    baseline = _load_baseline()
+    baseline = read_list(BASELINE_FILE)
     test_stems = _test_file_stems()
     tests = profile.layer("tests") or "tests/"
     bad: list[str] = []

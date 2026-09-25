@@ -19,7 +19,7 @@
 
 `agent(` 를 찾을 때 **주석과 문자열 안은 세지 않는다.** 워크플로우 스크립트는 프롬프트를
 문자열로 들고 다니고 거기 "agent(" 가 들어가는 것이 정상이다. 그걸 호출로 세면 정상 스크립트가
-막힌다 — 이 하네스가 `outbound_link` 와 `worktree_add_target` 에서 두 번 겪은 부류라 처음부터
+막힌다 — 이 하네스가 `outbound_link` 와 `worktree_add_path` 에서 두 번 겪은 부류라 처음부터
 자리로 가른다.
 
 호출 범위는 괄호 깊이로 잡는다. 정규식으로 같은 줄만 보면 여러 줄로 쓴 호출을 통째로 놓친다.
@@ -36,22 +36,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _hookio import read_hook_payload  # noqa: E402
-
-# Windows 기본 cp949 → 하네스(utf-8)에서 한글 깨짐 방지
-try:
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
+from _hookio import read_hook_payload, record  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
-
-# 차단할 때마다 관찰을 남긴다 — 회고가 읽을 데이터다. 기록이 실패해도 차단은 계속돼야 한다.
-try:
-    from kernel.trace import record
-except Exception:
-    def record(*_args: object, **_kwargs: object) -> None: ...
 
 # `foo.agent(` 는 다른 객체의 메서드다 — 앞이 단어·점이면 호출로 세지 않는다.
 CALL = re.compile(r"(?<![\w.])agent\s*\(")
@@ -195,11 +182,6 @@ def classify_calls(source: str) -> tuple[list[int], list[int]]:
             continue
         missing.append(line)
     return missing, unknown
-
-
-def missing_model(source: str) -> list[int]:
-    """model 을 안 준 `agent()` 호출의 줄번호 — 판정 불능은 세지 않는다."""
-    return classify_calls(source)[0]
 
 
 def script_source(tool_input: dict) -> str | None:

@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from kernel.context import READ_ENC, ROOT
+from kernel.context import ROOT, read_pairs
 
 BASELINE_FILE = ROOT / "harness_baseline.txt"
 
@@ -24,16 +24,7 @@ def violation_path(violation: str) -> str | None:
 
 
 def load_baseline() -> set[tuple[str, str]]:
-    if not BASELINE_FILE.exists():
-        return set()
-    frozen: set[tuple[str, str]] = set()
-    for line in BASELINE_FILE.read_text(encoding=READ_ENC).splitlines():
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        slug, _tab, path = line.partition("\t")
-        if path.strip():
-            frozen.add((slug.strip(), path.strip()))
-    return frozen
+    return read_pairs(BASELINE_FILE)
 
 
 def apply_baseline(sections: list) -> list:

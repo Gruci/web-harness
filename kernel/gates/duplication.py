@@ -25,14 +25,13 @@
 from __future__ import annotations
 
 import ast
-import hashlib
 import re
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
 from kernel import profile
-from kernel.context import READ_ENC, ROOT, _rel
+from kernel.context import READ_ENC, ROOT, _rel, read_list
 
 DECL_BASELINE_FILE = "dup_decl_baseline.txt"
 BLOCK_BASELINE_FILE = "dup_block_baseline.txt"
@@ -139,7 +138,7 @@ def _cluster(decls: list[_Decl]) -> list[list[_Decl]]:
     """지문이 같고 **서로 다른 파일**에 걸친 묶음만. 한 파일 안 반복은 지역 문제라 뺀다."""
     buckets: dict[str, list[_Decl]] = defaultdict(list)
     for decl in decls:
-        buckets[hashlib.md5(decl.digest.encode("utf-8")).hexdigest()].append(decl)
+        buckets[decl.digest].append(decl)
     return [group for group in buckets.values() if len({d.rel for d in group}) >= 2]
 
 
@@ -247,24 +246,12 @@ def _analyze(py_files: list[Path],
     return decl_groups, _collapse(_cluster(blocks))
 
 
-def _load_baseline(name: str) -> set[str]:
-    path = ROOT / name
-    if not path.exists():
-        return set()
-    keys: set[str] = set()
-    for line in path.read_text(encoding=READ_ENC).splitlines():
-        token = line.split("#", 1)[0].strip()
-        if token:
-            keys.add(token)
-    return keys
-
-
 def check_duplication(py_files: list[Path],
                       ui_files: list[Path]) -> tuple[list[str], list[str]]:
     """(선언 중복 위반, 블록 중복 위반). 동결된 파일 집합은 건너뛴다."""
     decl_groups, block_groups = _analyze(py_files, ui_files)
-    decl_frozen = _load_baseline(DECL_BASELINE_FILE)
-    block_frozen = _load_baseline(BLOCK_BASELINE_FILE)
+    decl_frozen = read_list(ROOT / DECL_BASELINE_FILE)
+    block_frozen = read_list(ROOT / BLOCK_BASELINE_FILE)
     decl_bad = [_decl_violation(g) for g in decl_groups
                 if _key([d.rel for d in g]) not in decl_frozen]
     block_bad = [_block_violation(g) for g in block_groups

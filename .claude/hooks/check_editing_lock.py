@@ -43,13 +43,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _hookio import default_branch, git_output as _git, read_hook_payload  # noqa: E402
-
-# Windows 기본 cp949 → 하네스(utf-8)에서 한글 깨짐 방지
-try:
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
+from _hookio import default_branch, git_output as _git, read_hook_payload, record  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -64,12 +58,6 @@ except Exception:
 # 보드는 **공유 체크아웃 한 곳**이다 — 훅 파일이 worktree 마다 복제되므로 자기 트리로
 # 잡으면 보드가 세션 수만큼 갈라진다(`kernel.workboard.board_dir` 헤더).
 BOARD_DIR = board_dir()
-
-# 알릴 때마다 관찰을 남긴다 — 회고가 읽을 데이터다. 기록이 실패해도 판정은 계속돼야 한다.
-try:
-    from kernel.trace import record
-except Exception:
-    def record(*_args: object, **_kwargs: object) -> None: ...
 
 
 def _my_sid8() -> str | None:
@@ -133,13 +121,8 @@ def _is_stale(row: str, base: str | None) -> bool:
     return bool(base) and is_merged(branch, base)
 
 
-def _active_edit_rows() -> list[str]:
-    """진행 중 과업 행 — 판정은 `kernel.workboard.active_rows`, 보드 자리만 이 훅이 쥔다."""
-    return active_rows(BOARD_DIR)
-
-
 def _report(label: str, rows: list[str], guidance: str) -> None:
-    # Stop 훅의 사유는 stderr로 내보내야 Claude에게 전달된다(stdout은 무시된다).
+    # 경고(exit 1)의 stderr 는 사용자 화면에만 뜬다 — 모델 컨텍스트에는 들어가지 않는다(훅 문서).
     print(f"[WORKBOARD] {label} {len(rows)}건", file=sys.stderr)
     for row in rows:
         print(f"  {row}", file=sys.stderr)
@@ -147,7 +130,7 @@ def _report(label: str, rows: list[str], guidance: str) -> None:
 
 
 def main() -> None:
-    rows = _active_edit_rows()
+    rows = active_rows(BOARD_DIR)
     if not rows:
         sys.exit(0)
 

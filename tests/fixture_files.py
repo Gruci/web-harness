@@ -320,10 +320,7 @@ CHECK_PATHS = {
     "tests": "tests", "schema": "db/schema",
 }
 FILES = {"settings": "settings.py", "ssl_util": "utils/ssl_utils.py"}
-SYMBOLS = {
-    "db_accessor": "get_db", "db_accessor_module": "db.connection",
-    "ssl_bypass": "bypass_ssl_verification", "error_response": "JSONResponse",
-}
+SYMBOLS = {"ssl_bypass": "bypass_ssl_verification", "error_response": "JSONResponse"}
 SCOPE = {"exclude_all": (), "exclude_scratch": ("scripts/", "docs/")}
 HUBS = ("CLAUDE.md", "AGENTS.md", "DEVGUIDE.md", "DESIGN_GUIDE.md", "README.md", "HARNESS.md")
 VOCAB = {

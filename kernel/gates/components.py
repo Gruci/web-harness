@@ -4,9 +4,8 @@ from kernel import component_graph
 
 
 def check(graph: dict, root: Path, sources: list[Path]) -> list[str]:
-    errors = component_graph.validate(graph)
-    if errors:
-        return errors
+    """`graph` is already validated by `component_graph.load`."""
+    errors: list[str] = []
     counts = {component["id"]: 0 for component in graph["components"]}
     states = {component["id"]: component["state"] for component in graph["components"]}
     for path in sources:
