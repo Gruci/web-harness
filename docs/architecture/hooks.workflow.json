@@ -7,7 +7,7 @@
     "animation": "trace",
     "repository": {
       "url": "https://github.com/Gruci/claude-web-harness",
-      "revision": "d11d92d0e2b4de79a9e00b5ecac51090b54ee866"
+      "revision": "8f6eb625ba7fef1e7e14023804727036a18f7be8"
     },
     "views": [
       {
@@ -115,8 +115,8 @@
         },
         {
           "path": ".claude/hooks/check_maintenance.py",
-          "line": 19,
-          "end_line": 43,
+          "line": 17,
+          "end_line": 41,
           "label": "⑥ 정비"
         }
       ]
