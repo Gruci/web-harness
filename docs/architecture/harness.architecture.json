@@ -7,7 +7,7 @@
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/Gruci/claude-web-harness",
-      "revision": "73e2004f2db36eb93e1a822eecce4c60248929b4"
+      "revision": "d11d92d0e2b4de79a9e00b5ecac51090b54ee866"
     },
     "views": [
       {
@@ -179,8 +179,8 @@
         },
         {
           "path": "kernel/profile.py",
-          "line": 142,
-          "end_line": 160,
+          "line": 147,
+          "end_line": 165,
           "label": "로딩"
         }
       ]
@@ -255,8 +255,8 @@
       "sources": [
         {
           "path": "kernel/lang.py",
-          "line": 64,
-          "end_line": 87,
+          "line": 45,
+          "end_line": 92,
           "label": "언어팩 로더"
         },
         {
@@ -265,8 +265,8 @@
         },
         {
           "path": "kernel/arch.py",
-          "line": 45,
-          "end_line": 64,
+          "line": 27,
+          "end_line": 42,
           "label": "아키텍처팩 로더"
         }
       ]
@@ -287,8 +287,8 @@
       "sources": [
         {
           "path": "kernel/gates/core.py",
-          "line": 64,
-          "end_line": 80,
+          "line": 62,
+          "end_line": 78,
           "label": "파일 길이 상한"
         },
         {
@@ -315,8 +315,8 @@
       "sources": [
         {
           "path": "harness_gates/edit_surface.py",
-          "line": 43,
-          "end_line": 53,
+          "line": 36,
+          "end_line": 46,
           "label": "편집 표면 래칫"
         },
         {
@@ -341,8 +341,8 @@
       "sources": [
         {
           "path": "tests/run_golden.py",
-          "line": 60,
-          "end_line": 97,
+          "line": 59,
+          "end_line": 96,
           "label": "골든 대조"
         },
         {

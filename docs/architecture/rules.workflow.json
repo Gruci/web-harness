@@ -5,8 +5,8 @@
     "title": "훅별 규칙 지도 — 무엇이 언제 무엇을 검사하나",
     "quality_profile": "showcase",
     "repository": {
-      "url": "https://github.com/Gruci/web-harness",
-      "revision": "e3735f3df3235565d80ba44ba3fd5cfeea2eb6a9"
+      "url": "https://github.com/Gruci/claude-web-harness",
+      "revision": "d11d92d0e2b4de79a9e00b5ecac51090b54ee866"
     },
     "views": [
       {
@@ -613,72 +613,60 @@
         "closures — 중첩 def(클로저)",
         "func_limit — 함수 길이 상한",
         "type_checking_future — TYPE_CHECKING↔future annotations 짝",
-        "reads_writes — 읽기 레이어의 쓰기 SQL·commit",
-        "reads_col_interp — 읽기 레이어 컬럼 식별자 raw 보간",
-        "writes_round — 쓰기 레이어 round() 절삭",
-        "batch_select — 배치 직접 SELECT",
         "abbrev_names — 축약 이름 단독 대입",
-        "abbrev_prefixes — 축약 접두 식별자"
+        "abbrev_prefixes — 축약 접두 식별자",
+        "ui_jargon — UI 라벨 금칙어",
+        "py_any — Any 타입힌트",
+        "type_hints — 공개 함수 타입힌트",
+        "secrets — 시크릿 토큰 하드코딩"
       ]
     },
     {
       "dot": "slate",
       "title": "러너 게이트 13~24",
       "items": [
-        "ui_jargon — UI 라벨 금칙어",
-        "py_any — Any 타입힌트",
-        "type_hints — 공개 함수 타입힌트",
-        "secrets — 시크릿 토큰 하드코딩",
         "ts_any — TS any 타입",
-        "conn_processing — 커넥션 블록 내 가공",
         "env_access — 설정 밖 환경변수 조회",
         "web_async — await 없는 async 핸들러",
-        "accessor_import — 커넥션 접근자 import 단일 경로",
         "ssl_bypass — 전역 SSL 패치 호출 위치",
         "routes_error — 라우트 에러 응답 형식",
-        "raw_fetch — 공용 래퍼 없는 fetch"
+        "raw_fetch — 공용 래퍼 없는 fetch",
+        "hex_literal — 프론트 색 리터럴",
+        "responsive — 폰을 깨뜨리는 고정 폭",
+        "browser_api — 브라우저 API 직접 호출",
+        "hash_nav — 해시 네비게이션 단일 기전",
+        "ui_logic_tests — 프론트 로직 테스트 짝",
+        "ui_component_tests — 프론트 컴포넌트 테스트 짝"
       ]
     },
     {
       "dot": "slate",
       "title": "러너 게이트 25~36",
       "items": [
-        "hex_literal — 프론트 색 리터럴",
-        "responsive — 폰을 깨뜨리는 고정 폭",
-        "browser_api — 브라우저 API 직접 호출",
-        "hash_nav — 해시 네비게이션 단일 기전",
-        "ui_logic_tests — 프론트 로직 테스트 짝",
-        "ui_component_tests — 프론트 컴포넌트 테스트 짝",
         "root_litter — 루트 직속 잡파일",
         "prompt_version — 프롬프트 버전 범프",
-        "file_placement — 앱 코드 배치",
         "test_pairing — 수집·계산 모듈의 행동 테스트 짝",
         "ddl_types — DDL 저장 타입 잘림",
-        "api_array — API 응답 배열 필드 옵셔널"
+        "api_array — API 응답 배열 필드 옵셔널",
+        "orphan_api — 소비 UI 없는 API 라우트",
+        "undefined_const — 미정의 모듈 상수",
+        "lint:ruff — 정적 분석(ruff)",
+        "dup_decl — 선언 본문 중복(정본 재구현)",
+        "dup_block — 블록 중복(선언 안 복붙)",
+        "local:edit_surface — 편집 표면 래칫(면제·제외 목록)",
+        "local:archive_not_shipped — 작업 archive 배포 금지"
       ]
     },
     {
       "dot": "slate",
-      "title": "러너 게이트 37~48",
+      "title": "러너 게이트 37~44",
       "items": [
-        "orphan_api — 소비 UI 없는 API 라우트",
-        "undefined_const — 미정의 모듈 상수",
-        "dup_decl — 선언 본문 중복(정본 재구현)",
-        "dup_block — 블록 중복(선언 안 복붙)",
-        "local:edit_surface — 편집 표면 래칫(면제·제외 목록)",
-        "local:archive_not_shipped — 작업 archive 배포 금지",
         "md_style — MD 작성 규칙",
         "md_path_refs — MD 경로 참조 실존",
         "md_orphans — 고아 MD(허브 도달 불가)",
         "md_harness_map — 하네스 지도 대조",
         "agent_model — 에이전트 모델 정책",
-        "lessons_promotion — 사고 절 승격 상태"
-      ]
-    },
-    {
-      "dot": "slate",
-      "title": "러너 게이트 49~50",
-      "items": [
+        "lessons_promotion — 사고 절 승격 상태",
         "md_fn_refs — MD 함수 참조 실존",
         "arch_diagram — 아키텍처 그림 1:1 대조"
       ]

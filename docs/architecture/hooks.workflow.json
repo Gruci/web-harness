@@ -7,7 +7,7 @@
     "animation": "trace",
     "repository": {
       "url": "https://github.com/Gruci/claude-web-harness",
-      "revision": "73e2004f2db36eb93e1a822eecce4c60248929b4"
+      "revision": "d11d92d0e2b4de79a9e00b5ecac51090b54ee866"
     },
     "views": [
       {
@@ -109,14 +109,14 @@
         },
         {
           "path": ".claude/hooks/git_staleness.py",
-          "line": 93,
-          "end_line": 117,
+          "line": 79,
+          "end_line": 103,
           "label": "⑤ 과업 주입·정렬"
         },
         {
           "path": ".claude/hooks/check_maintenance.py",
-          "line": 22,
-          "end_line": 46,
+          "line": 19,
+          "end_line": 43,
           "label": "⑥ 정비"
         }
       ]
@@ -149,20 +149,20 @@
       "sources": [
         {
           "path": ".claude/hooks/check_context_diet.py",
-          "line": 48,
-          "end_line": 85,
+          "line": 34,
+          "end_line": 71,
           "label": "⑧ Read"
         },
         {
           "path": ".claude/hooks/check_bash_write.py",
-          "line": 286,
-          "end_line": 350,
+          "line": 266,
+          "end_line": 319,
           "label": "⑧-1 셸"
         },
         {
           "path": ".claude/hooks/check_worktree_name.py",
-          "line": 184,
-          "end_line": 254,
+          "line": 152,
+          "end_line": 226,
           "label": "⑧-2 worktree"
         }
       ]
@@ -201,8 +201,8 @@
       "sources": [
         {
           "path": ".claude/hooks/check_agent_return.py",
-          "line": 38,
-          "end_line": 77,
+          "line": 23,
+          "end_line": 62,
           "label": "main"
         }
       ]
@@ -218,8 +218,8 @@
       "sources": [
         {
           "path": ".claude/hooks/check_editing_lock.py",
-          "line": 149,
-          "end_line": 186,
+          "line": 132,
+          "end_line": 169,
           "label": "main"
         },
         {
@@ -260,20 +260,20 @@
       "sources": [
         {
           "path": ".claude/hooks/check_git_remote.py",
-          "line": 71,
-          "end_line": 102,
+          "line": 50,
+          "end_line": 81,
           "label": "⑭ 원격"
         },
         {
           "path": ".claude/hooks/check_task_residue.py",
-          "line": 84,
-          "end_line": 98,
+          "line": 89,
+          "end_line": 104,
           "label": "⑰ 산출물"
         },
         {
           "path": ".claude/hooks/check_ui_copy.py",
-          "line": 202,
-          "end_line": 249,
+          "line": 197,
+          "end_line": 245,
           "label": "⑱ UI 카피 (경고)"
         }
       ]
